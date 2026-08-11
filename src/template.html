@@ -186,6 +186,8 @@ figcaption b{color:var(--ink-2); font-weight:600}
 button.chip.link{font:inherit; font-family:ui-monospace,Menlo,monospace; font-size:.75rem;
   color:var(--ink); cursor:pointer}
 button.chip.link:hover{border-color:var(--res); color:var(--res)}
+a.chip{color:var(--ink); text-decoration:none}
+a.chip:hover{border-color:var(--res); color:var(--res)}
 .holders{display:flex; flex-direction:column; gap:6px; padding:9px 11px;
   background:var(--surface-2); border:1px solid var(--line); border-radius:9px}
 .holders + .holders{margin-top:8px}
@@ -293,6 +295,7 @@ footer b{color:var(--ink-2)}
     <button class="tab" role="tab" id="t-overview" aria-controls="p-overview" aria-selected="true">Overview</button>
     <button class="tab" role="tab" id="t-explorer" aria-controls="p-explorer" aria-selected="false">Resource explorer</button>
     <button class="tab" role="tab" id="t-datatypes" aria-controls="p-datatypes" aria-selected="false">Data types</button>
+    <button class="tab" role="tab" id="t-enums" aria-controls="p-enums" aria-selected="false">Enums</button>
   </div>
   <div class="verpick">
     <label for="ver">FHIR release</label>
@@ -797,6 +800,47 @@ patient.managingOrganization = Reference(reference: <span class="bad">"Banana/42
   </div>
 </div>
 
+<!-- ===================== ENUMS ===================== -->
+<div class="wrap wide" id="p-enums" role="tabpanel" aria-labelledby="t-enums" hidden>
+  <section style="padding-top:40px">
+    <div class="head" style="border-top:0; padding-top:0">
+      <div class="eyebrow" data-stat="enumEyebrow"></div>
+      <h2>Enum explorer</h2>
+    </div>
+    <p class="note">Every generated code system, its allowed values, and — the part the file
+    itself can't tell you — <b>which properties bind it</b>. Most of these enums are bound by
+    nothing at all: they exist because the spec publishes the value set, not because any Swift
+    property requires it. Sort by <b>Most bound</b> to see the ones that actually constrain your
+    mapping.</p>
+  </section>
+
+  <div class="explorer" id="ex-enums">
+    <div class="controls">
+      <input type="search" class="q" placeholder="Filter by name, description, or a property that binds it…" aria-label="Filter enums">
+      <select class="sort" aria-label="Sort enums">
+        <option value="bound">Most bound</option>
+        <option value="name">A → Z</option>
+        <option value="ncases">Most cases</option>
+      </select>
+      <span class="hits"></span>
+    </div>
+    <div class="panes">
+      <div class="list" role="listbox" aria-label="Enums"></div>
+      <div class="pane">
+        <div class="dhead"></div>
+        <div class="subtabs" role="tablist" aria-label="Enum detail">
+          <button class="subtab" role="tab" data-tab="structure" aria-selected="true">Values</button>
+          <button class="subtab" role="tab" data-tab="source" aria-selected="false">Swift source</button>
+          <button class="subtab" role="tab" data-tab="json" aria-selected="false">JSON usage</button>
+        </div>
+        <div class="panebody" data-body="structure"></div>
+        <div class="panebody code" data-body="source" hidden></div>
+        <div class="panebody code" data-body="json" hidden></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="tip" role="status" aria-live="polite"></div>
 
 <!--__BUNDLES__-->
@@ -889,6 +933,8 @@ function stats(){
     // figure 4
     refFields: `ElementReadOnly · ${(DATA.datatypes.find(d => d.name === 'Reference') || {}).nprops || 0} stored properties`,
     datatypeEyebrow: `The ${DATA.datatypes.length} datatypes every resource builds from`,
+    enumEyebrow: `${fmt(DATA.enums.length)} generated code systems · ` +
+      `${fmt(DATA.enums.filter(e => e.bound).length)} of them actually bound`,
   };
   for (let i = 0; i < 3; i++) {
     s[`exBB${i}`] = (ex.bb[i] || {}).n || '';
@@ -922,17 +968,17 @@ function applyRelease(slug){
   const r = RELEASES.find(x => x.slug === slug);
   if (r && r.embedded) {
     $('p-soon').hidden = true;
-    ['t-overview','t-explorer','t-datatypes'].forEach(t => { $(t).disabled = false; });
+    ['t-overview','t-explorer','t-datatypes','t-enums'].forEach(t => { $(t).disabled = false; });
     SLUG = slug;
     DATA = bundleFor('payload', slug);
     M = DATA.meta; C = DATA.counts;
     applyStats(); renderBars(); renderChoiceTable(); renderValueXSample();
-    resourceExplorer.rebuild(); datatypeExplorer.rebuild();
+    resourceExplorer.rebuild(); datatypeExplorer.rebuild(); enumExplorer.rebuild();
     showTab(activeTab);
     return;
   }
-  ['p-overview','p-explorer','p-datatypes'].forEach(p => { $(p).hidden = true; });
-  ['t-overview','t-explorer','t-datatypes'].forEach(t => { $(t).disabled = true; });
+  ['p-overview','p-explorer','p-datatypes','p-enums'].forEach(p => { $(p).hidden = true; });
+  ['t-overview','t-explorer','t-datatypes','t-enums'].forEach(t => { $(t).disabled = true; });
   $('p-soon').hidden = false;
   $('soon-title').textContent = `${r.label} is not built yet`;
   $('soon-body').textContent =
@@ -949,14 +995,15 @@ verSel.addEventListener('change', () => applyRelease(verSel.value));
 let activeTab = 'overview';
 function showTab(name){
   activeTab = name;
-  for (const n of ['overview','explorer','datatypes']) {
+  for (const n of ['overview','explorer','datatypes','enums']) {
     $('p-' + n).hidden = n !== name;
     $('t-' + n).setAttribute('aria-selected', String(n === name));
   }
   if (name === 'explorer') resourceExplorer.ensure();
   if (name === 'datatypes') datatypeExplorer.ensure();
+  if (name === 'enums') enumExplorer.ensure();
 }
-['overview','explorer','datatypes'].forEach(n =>
+['overview','explorer','datatypes','enums'].forEach(n =>
   $('t-' + n).addEventListener('click', () => showTab(n)));
 
 /* ---------------- tooltip ---------------- */
@@ -1325,7 +1372,7 @@ const resourceExplorer = makeExplorer('ex-resources', {
       <div class="block">
         <h4>Binds — terminology enums</h4>
         ${codeMap.size ? `<div class="chips">${[...codeMap].map(([e, n]) =>
-          `<span class="chip t">${e}${n > 1 ? ` <span style="color:var(--muted)">×${n}</span>` : ''}</span>`).join('')}</div>`
+          `<button class="chip t link" data-goto="enum" data-name="${e}">${e}${n > 1 ? ` <span style="color:var(--muted)">×${n}</span>` : ''}</button>`).join('')}</div>`
           : '<p class="empty">No required code bindings.</p>'}
       </div>
 
@@ -1455,8 +1502,124 @@ ${d.props.filter(p => p.n !== 'extension' && p.n !== 'id')
 }</pre>`,
 });
 
+/* ---------------- enums ---------------- */
+/* The case list lives in the bundled Swift, so it is read from there rather than
+   duplicated into the payload: `case male` or `case notAsked = "not-asked"`,
+   each with the `///` lines above it. */
+function enumCases(src){
+  const out = [];
+  let doc = [];
+  for (const line of src.split('\n')) {
+    const c = line.match(/^\tcase ([A-Za-z0-9_]+)(?:\s*=\s*"([^"]*)")?/);
+    if (c) { out.push({ name: c[1], raw: c[2] || c[1], doc: doc.join(' ') }); doc = []; continue; }
+    const d = line.match(/^\t\/\/\/ ?(.*)$/);
+    if (d) { doc.push(d[1].trim()); continue; }
+    if (line.trim() !== '') doc = [];
+  }
+  return out;
+}
+
+const enumExplorer = makeExplorer('ex-enums', {
+  items: () => DATA.enums,
+  noun: 'enum',
+  initial: list => (list.some(e => e.name === 'AdministrativeGender')
+    ? 'AdministrativeGender' : list[0].name),
+  metrics: {
+    bound:  { get: e => e.bound, unit: 'bound' },
+    name:   { get: e => e.ncases, unit: 'cases', alpha: true },
+    ncases: { get: e => e.ncases, unit: 'cases' },
+  },
+  search: e => [e.name, e.doc, e.url,
+                ...Object.values(e.binders).flat()],
+  file: e => e.file,
+  head: e => `
+    <h3>${e.name}</h3>
+    <p>${esc(e.doc || '')}</p>
+    <div class="chips">
+      <span class="pill term">${e.ncases} value${e.ncases === 1 ? '' : 's'}</span>
+      <span class="pill">${e.file}</span>
+      ${e.bound ? `<span class="pill res">bound ${e.bound}×</span>`
+                : '<span class="pill">bound by nothing</span>'}
+    </div>`,
+  structure(e){
+    const sources = bundleFor('sources', SLUG) || {};
+    const cases = sources[e.file] ? enumCases(sources[e.file]) : [];
+    const groups = Object.entries(e.binders);
+    return `
+      <div class="metrics">
+        <div><b>${e.ncases}</b><span>allowed values</span></div>
+        <div><b>${e.bound}</b><span>properties bind it</span></div>
+        <div><b>${e.lines.toLocaleString()}</b><span>lines</span></div>
+      </div>
+
+      ${e.url || e.valueSet ? `<div class="block">
+        <h4>Terminology</h4>
+        <div class="chips">
+          ${e.url ? `<a class="chip" href="${esc(e.url)}" target="_blank" rel="noopener">system · ${esc(e.url.replace(/^https?:\/\//, ''))}</a>` : ''}
+          ${e.valueSet ? `<a class="chip" href="${esc(e.valueSet)}" target="_blank" rel="noopener">value set · ${esc(e.valueSet.replace(/^https?:\/\//, ''))}</a>` : ''}
+        </div>
+      </div>` : ''}
+
+      <div class="block">
+        <h4>Values — as written in the generated enum</h4>
+        ${cases.length ? `<div class="reflist">${cases.map(c => `
+          <div>
+            <span class="p">${c.name}</span>
+            ${c.raw !== c.name ? `<span class="own">= "${esc(c.raw)}"</span>` : ''}
+            <span class="doc">${esc(c.doc)}</span>
+          </div>`).join('')}</div>`
+          : '<p class="empty">Case list unavailable — the Swift source was not bundled.</p>'}
+      </div>
+
+      <div class="block">
+        <h4>Bound by — properties that require this enum</h4>
+        ${groups.length ? groups.map(([role, refs]) => `
+          <div class="holders">
+            <span class="rolelabel">${refs.length} ${ROLE_LABEL[role] || role}</span>
+            <div class="chips">${refs.slice(0, HOLDER_CAP).map(ref => {
+              const owner = ref.split('.')[0];
+              return `<button class="chip link ${role === 'backbone' ? 'b' : ''}" ` +
+                     `data-goto="${(role === 'domain-resource' || role === 'resource') ? 'resource' : 'datatype'}" ` +
+                     `data-name="${owner}">${ref}</button>`;
+            }).join('')}</div>
+            ${refs.length > HOLDER_CAP
+              ? `<p class="empty">+ ${refs.length - HOLDER_CAP} more</p>` : ''}
+          </div>`).join('')
+          : `<p class="empty">Nothing binds this enum — it is generated because the spec
+             publishes the value set, not because a property requires it.</p>`}
+      </div>`;
+  },
+  example(e, bundle){
+    const c = (bundle.codes || {})[e.name];
+    if (!c) return null;
+    return { file: c.from, url: c.url, json: c.json, path: c.path,
+             caption: 'A coded value from a published HL7 FHIR example, unmodified' };
+  },
+  noExample(e, bundle){
+    return Object.keys(bundle.codes || {}).length
+      ? (e.bound
+          ? `No published example fills a property bound to <b>${esc(e.name)}</b>, so there is no real coded value to show.`
+          : `Nothing binds <b>${esc(e.name)}</b>, so no example can contain one of its codes.`)
+      : `No example cache was bundled into this build — run <code>scripts/fetch_examples.py</code> and rebuild.`;
+  },
+  fallback: e => {
+    const sources = bundleFor('sources', SLUG) || {};
+    const cases = sources[e.file] ? enumCases(sources[e.file]) : [];
+    if (!cases.length) return '';
+    return `
+      <p class="note" style="font-size:.85rem">The values it would serialise as:</p>
+      <pre class="sample">${cases.slice(0, 8).map(c => `"${esc(c.raw)}"`).join(', ')}${cases.length > 8 ? ', …' : ''}</pre>`;
+  },
+});
+
 /* ---------------- cross-links between the two explorers ---------------- */
 function goTo(kind, name){
+  if (kind === 'enum') {
+    if (DATA.enums.some(e => e.name === name)) {
+      showTab('enums'); enumExplorer.reveal(name); return;
+    }
+    kind = 'datatype';
+  }
   if (kind === 'datatype') {
     if (DATA.datatypes.some(d => d.name === name)) {
       showTab('datatypes'); datatypeExplorer.reveal(name); return;

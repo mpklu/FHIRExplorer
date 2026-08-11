@@ -35,6 +35,12 @@ DOC_PROP_RE = re.compile(r'/// (.+)\n\tpublic (?:var|let) `?([A-Za-z0-9_]+)`?\s*
 SUMMARY_RE = re.compile(r'/\*\*\n (.+?)\n')
 FHIR_VERSION_RE = re.compile(r'Generated from FHIR ([0-9A-Za-z.\-]+)')
 TYPEALIAS_RE = re.compile(r'^public typealias ([A-Za-z0-9_]+) = ([A-Za-z0-9_]+)', re.M)
+# Terminology files: one `public enum X: String, FHIRPrimitiveType` per code system,
+# with the system/value-set URLs in the doc block above it.
+CODE_ENUM_RE = re.compile(r'^public enum ([A-Za-z0-9_]+)\s*:\s*String', re.M)
+CODE_CASE_RE = re.compile(r'^\tcase ([A-Za-z0-9_]+)', re.M)
+CODE_URL_RE = re.compile(r'^ URL: (\S+)', re.M)
+CODE_VS_RE = re.compile(r'^ ValueSet: (\S+)', re.M)
 
 IDENT_RE = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')
 # Wrappers that are plumbing rather than a modelled relationship.
@@ -59,6 +65,7 @@ def parse(models_dir: str) -> dict:
     nested: dict[str, list] = {}
     documented: dict[str, list] = collections.defaultdict(list)
     code_enums: set[str] = set()
+    code_systems: dict[str, dict] = {}
     aliases: dict[str, str] = {}
     fhir_version = ""
 
@@ -76,8 +83,23 @@ def parse(models_dir: str) -> dict:
                 fhir_version = m.group(1)
 
         if terminology:
-            for m in re.finditer(r'^public enum ([A-Za-z0-9_]+)', src, re.M):
-                code_enums.add(m.group(1))
+            decls = list(CODE_ENUM_RE.finditer(src))
+            for i, m in enumerate(decls):
+                name = m.group(1)
+                code_enums.add(name)
+                head = src[:m.start()]
+                body = src[m.end(): decls[i + 1].start() if i + 1 < len(decls) else len(src)]
+                doc = SUMMARY_RE.findall(head)
+                url = CODE_URL_RE.findall(head)
+                vs = CODE_VS_RE.findall(head)
+                code_systems[name] = {
+                    "name": name, "file": base + ".swift",
+                    "lines": src.count("\n") + 1,
+                    "doc": doc[-1].strip() if doc else "",
+                    "url": url[-1] if url else "",
+                    "valueSet": vs[-1] if vs else "",
+                    "ncases": len(CODE_CASE_RE.findall(body)),
+                }
             continue
 
         for name, target in TYPEALIAS_RE.findall(src):
@@ -280,6 +302,23 @@ def parse(models_dir: str) -> dict:
             if only != "?":
                 dt_keys[only].append(prop_name)
 
+    # --- who binds each terminology enum ----------------------------------
+    code_binders: dict[str, dict[str, list[str]]] = collections.defaultdict(
+        lambda: collections.defaultdict(list))
+    for name, t in sorted(types.items()):
+        for p in t["props"]:
+            for tok in idents(p["type"]):
+                if tok in code_systems:
+                    code_binders[tok][t["role"]].append(f'{name}.{p["name"]}')
+
+    enums = sorted(
+        ({**code_systems[n],
+          "bound": sum(len(v) for v in code_binders.get(n, {}).values()),
+          "binders": {role: sorted(names)
+                      for role, names in sorted(code_binders.get(n, {}).items())}}
+         for n in sorted(code_systems)),
+        key=lambda e: (-e["bound"], e["name"]))
+
     alias_of: dict[str, list[str]] = collections.defaultdict(list)
     for a, target in aliases.items():
         if target in datatype_names:
@@ -364,6 +403,7 @@ def parse(models_dir: str) -> dict:
         "roles": dict(roles),
         "resources": resources,
         "datatypes": datatypes,
+        "enums": enums,
         # datatype → [[resource, property, isArray], …]: where to look for a real
         # JSON fragment of that datatype inside a resource's published example
         "dt_props": {d: v[:14] for d, v in sorted(dt_props.items())},
@@ -402,7 +442,8 @@ def collect_sources(models_dir: str, payload: dict) -> dict[str, str]:
     (ElementDefinition and its eight helpers, for one).
     """
     wanted = sorted({e["file"] for e in payload["resources"]} |
-                    {e["file"] for e in payload["datatypes"]})
+                    {e["file"] for e in payload["datatypes"]} |
+                    {e["file"] for e in payload["enums"]})
     return {name: open(os.path.join(models_dir, name), encoding="utf-8").read()
             for name in wanted}
 
@@ -441,6 +482,10 @@ def main(argv=None):
               f"({os.path.getsize(args.sources_out) / 1e6:.2f} MB, {len(sources)} files)")
     print(f"  {len(payload['datatypes'])} datatypes detailed "
           f"({sum(1 for d in payload['datatypes'] if d['props'])} with documented properties)")
+    bound = sum(1 for e in payload['enums'] if e['bound'])
+    print(f"  {len(payload['enums'])} terminology enums "
+          f"({bound} bound by at least one property, "
+          f"{sum(e['ncases'] for e in payload['enums'])} cases total)")
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ published by GitHub Actions on every push to `main`.
 
 ```
 python3 scripts/build.py            # parses ../FHIRModels, writes dist/index.html
-open dist/index.html                # ~11.5 MB (1.6 MB gzipped), self-contained, no network calls
+open dist/index.html                # ~13.4 MB (1.9 MB gzipped), self-contained, no network calls
 ```
 
 ## What's in it
@@ -41,16 +41,32 @@ two classes — true in both releases), datatype reuse counts, and the `value[x]
 - **Swift source** — the generated file verbatim, with line numbers, syntax highlighting, and a
   folded license header. Read-only.
 - **JSON example** — a published HL7 example instance of that resource, unmodified, with a link
-  to its page on hl7.org. 141 of 146 resources have one; the five `Substance*` resources the
+  to its page on hl7.org. 141 of 146 R4 resources have one; the five `Substance*` resources the
   spec publishes no example for show their minimal shape instead. Read-only.
 
-**Data type explorer** — the 41 datatypes and 8 shared backbones, sorted by reach. Same three
-tabs, plus the thing the Swift source cannot give you: a **reverse index** of every type that
-holds this one, grouped into resources / backbone structs / datatypes. Its **JSON example** is a
-real fragment of that datatype lifted out of a published resource instance, labelled with the
-path it came from (`RelatedPerson.name[0]` in `relatedperson-example.json`) — 33 of 49 datatypes
-have one. Chips cross-link between the two explorers, and clicking a bar on the Overview chart
-opens that datatype.
+**Data type explorer** — the datatypes and shared backbones, sorted by reach. Same three tabs,
+plus the thing the Swift source cannot give you: a **reverse index** of every type that holds this
+one, grouped into resources / backbone structs / datatypes. Its **JSON example** is a real
+fragment of that datatype lifted out of a published resource instance, labelled with the path it
+came from (`RelatedPerson.name[0]` in `relatedperson-example.json`) — 33 of 49 in R4.
+
+**Enum explorer** — every generated code system (445 in R4, 363 in R5):
+
+- **Values** — the allowed cases with their descriptions, read out of the bundled Swift rather
+  than duplicated into the payload, so explicit raw values show as written
+  (`unableToAssess = "unable-to-assess"`). Links out to the code system and value set on hl7.org.
+- **Swift source** — the generated enum, verbatim.
+- **JSON usage** — an enum has no instance of its own, so this shows a property that binds it as
+  it appears in a real example: `{"gender": "male"}` from `Patient.gender` in
+  `patient-example.json`. 84 of 445 in R4.
+- **Bound by** — which properties actually require the enum. Worth knowing: **250 of 445 R4 enums
+  are bound by nothing** — they exist because the spec publishes the value set, not because any
+  Swift property constrains itself to it. Sort by *Most bound* to see the ones that matter
+  (`PublicationStatus` at 31 properties, `ResourceType` at 12).
+
+Chips cross-link all three explorers — a terminology chip on `Patient` opens
+`AdministrativeGender`, a holder chip on `Reference` opens that resource — and clicking a bar on
+the Overview reuse chart opens that datatype.
 
 **Release picker** — R4 (FHIR 4.0.1) and R5 (FHIR 5.0.0) are embedded; switching re-renders the
 whole page from that release's payload. DSTU2, STU3, R4B and the R6 ballot show a "coming soon"
@@ -68,7 +84,7 @@ FHIRExplorer/
 ├── data/r4.examples.json     # HL7 examples + datatype fragments (committed, ~580 kB)
 ├── data/r4.sources.json      # verbatim Swift, keyed by file (generated, ~4.1 MB, ignored)
 ├── data/r5.*.json            # the same three payloads for R5
-└── dist/index.html           # build output (generated, ~11.5 MB, ignored)
+└── dist/index.html           # build output (generated, ~13.4 MB, ignored)
 ```
 
 `data/*.sources.json` and `dist/` are generated from the FHIRModels checkout, so they stay out of
@@ -93,7 +109,7 @@ python3 scripts/build.py --fhir-repo /path/to/FHIRModels   # overrides the env v
 Only `--reparse` (or a first build, where the Swift bundles are absent) needs the checkout at
 all — `data/*.json` and `data/*.examples.json` are committed, so a plain build works without it.
 
-Each embedded release adds roughly 5–6 MB to the page (its Swift sources dominate), so use
+Each embedded release adds roughly 6–7 MB to the page (its Swift sources dominate), so use
 `--releases` if you need a lighter build — for example to stay under a host's file-size limit.
 
 Python 3.9+, standard library only. No npm, no bundler. `build.py` never touches the network;
@@ -155,6 +171,8 @@ offers the rest as "coming soon".
 - `public var` / `public let` and their types → containment edges, datatype reuse, code bindings
 - nested `…X` enums and their cases (including `indirect case`) → `value[x]` choice slots
 - the `///` doc comment above each property → the only in-code hint about reference targets
+- `CodeSystem*.swift` / `ValueSet*.swift` → the terminology enums, their system and value-set
+  URLs, and which properties bind each one
 - `public typealias` → `Age`/`Count`/`Distance`/`Duration` resolve to `Quantity`
 - every holder of every datatype → the reverse index behind the Data types tab
 

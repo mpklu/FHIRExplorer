@@ -145,6 +145,32 @@ def find_fragments(payload: dict, picked: dict) -> dict:
     return fragments
 
 
+def find_code_samples(payload: dict, picked: dict) -> dict:
+    """A real coded value per terminology enum, e.g. Patient.gender -> "male".
+
+    Enums have no instance of their own, so the useful example is the property
+    that binds them as it appears in that resource's published example.
+    """
+    samples = {}
+    for entry in payload.get("enums", []):
+        refs = [r for role in ("domain-resource", "resource")
+                for r in entry["binders"].get(role, [])]
+        for ref in refs:
+            resource, prop = ref.split(".", 1)
+            example = picked.get(resource)
+            if not example:
+                continue
+            value = example["json"].get(prop)
+            if isinstance(value, list):
+                value = value[0] if value else None
+            if not isinstance(value, str):
+                continue
+            samples[entry["name"]] = {"from": example["file"], "url": example["url"],
+                                      "path": ref, "json": {prop: value}}
+            break
+    return samples
+
+
 def walk(node, path: str, depth: int = 0):
     """Yield (dotted path, value) for every object/array member, breadth-ish."""
     if depth > 6:
@@ -189,13 +215,15 @@ def main(argv=None):
         }
 
     fragments = find_fragments(payload, picked)
+    codes = find_code_samples(payload, picked)
 
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w") as fh:
         json.dump({"release": args.release,
                    "source": ARCHIVES[args.release],
                    "examples": picked,
-                   "fragments": fragments}, fh, separators=(",", ":"))
+                   "fragments": fragments,
+                   "codes": codes}, fh, separators=(",", ":"))
 
     datatypes = [d["name"] for d in payload.get("datatypes", [])]
     no_frag = [d for d in datatypes if d not in fragments]
@@ -203,6 +231,8 @@ def main(argv=None):
     print(f"  {len(picked)}/{len(resources)} resources have a published example")
     if missing:
         print(f"  no published example: {', '.join(missing)}")
+    enums = payload.get("enums", [])
+    print(f"  {len(codes)}/{len(enums)} terminology enums have a real coded value")
     print(f"  {len(datatypes) - len(no_frag)}/{len(datatypes)} datatypes have a real fragment")
     if no_frag:
         print(f"  no fragment found: {', '.join(no_frag)}")
