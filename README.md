@@ -1,15 +1,15 @@
 # FHIRExplorer
 
-A single-page, offline map of [Apple's FHIRModels](https://github.com/apple/FHIRModels) —
-what the generated Swift types are, how they relate, and the source of every resource,
-read-only.
+A single-page, offline map of [Apple's FHIRModels](https://github.com/apple/FHIRModels) — what
+the generated Swift types are, how they relate, and for every resource its Swift source and a
+real JSON instance, both read-only.
 
 Built by parsing a local FHIRModels checkout, so nothing in it is hand-maintained: bump the
 dependency, re-run the build, and the page matches the new models exactly.
 
 ```
 python3 scripts/build.py            # parses ../FHIRModels, writes dist/index.html
-open dist/index.html                # ~4 MB, self-contained, no network calls
+open dist/index.html                # ~4.6 MB, self-contained, no network calls
 ```
 
 ## What's in it
@@ -32,6 +32,9 @@ module's only two classes), datatype reuse counts, and the 186 nested `value[x]`
   shared datatypes held, terminology enums bound, `value[x]` slots.
 - **Swift source** — the generated file verbatim, with line numbers, syntax highlighting, and a
   folded license header. Read-only.
+- **JSON example** — a published HL7 example instance of that resource, unmodified, with a link
+  to its page on hl7.org. 141 of 146 resources have one; the five `Substance*` resources the
+  spec publishes no example for show their minimal shape instead. Read-only.
 
 **Release picker** — R4 is built. The other releases Apple ships modules for (DSTU2, STU3, R4B,
 R5, R6 ballot) show a "coming soon" panel with the exact commands to add them.
@@ -41,15 +44,19 @@ R5, R6 ballot) show a "coming soon" panel with the exact commands to add them.
 ```
 FHIRExplorer/
 ├── scripts/parse_models.py   # Swift module → structure JSON + source bundle
+├── scripts/fetch_examples.py # hl7.org examples archive → one example per resource
 ├── scripts/build.py          # template + JSON → dist/index.html (self-contained)
 ├── src/template.html         # the page: markup, CSS, diagrams, client JS
 ├── data/r4.json              # parsed structure payload (committed, ~170 kB)
+├── data/r4.examples.json     # published HL7 examples (committed, ~570 kB)
 ├── data/r4.sources.json      # verbatim Swift per resource (generated, ~3.8 MB, ignored)
-└── dist/index.html           # build output (generated, ignored)
+└── dist/index.html           # build output (generated, ~4.6 MB, ignored)
 ```
 
-`data/*.sources.json` and `dist/` are generated, so they stay out of git; `data/r4.json` is
-committed because it is small and its diffs show exactly what changed when FHIRModels is bumped.
+`data/*.sources.json` and `dist/` are generated from the FHIRModels checkout, so they stay out of
+git. `data/r4.json` is committed because it is small and its diffs show exactly what changed when
+FHIRModels is bumped. `data/r4.examples.json` is committed because it is the one payload that
+needs the network to produce — with it in the repo, every build is offline.
 
 ## Build
 
@@ -61,7 +68,18 @@ python3 scripts/build.py --reparse                # re-parse the models first
 python3 scripts/build.py --fhir-repo /path/to/FHIRModels
 ```
 
-Python 3.9+, standard library only. No npm, no bundler, no network access at build or run time.
+Python 3.9+, standard library only. No npm, no bundler. `build.py` never touches the network;
+only `fetch_examples.py` does, and its output is committed:
+
+```bash
+python3 scripts/fetch_examples.py --release r4 \
+    --data data/r4.json --out data/r4.examples.json
+```
+
+That downloads `hl7.org/fhir/R4/examples-json.zip` (~20 MB), indexes all 2,912 instances by their
+own `resourceType`, and keeps one per resource — the canonical `<resource>-example.json` where the
+spec publishes one, otherwise the richest instance under 24 kB. Re-run it only when moving to a
+new FHIR release.
 
 ## Adding a FHIR release
 
@@ -97,5 +115,10 @@ modules can recover them — use the FHIR spec.
 FHIRModels is Apache-2.0, © Apple Inc. The **Swift source** tab shows that code verbatim, and
 `data/*.sources.json` embeds it; the license header is folded in the viewer, not stripped from
 the data. This repo only reads FHIRModels — never edit that checkout.
+
+The **JSON example** tab shows HL7's own published example instances, unmodified, each linked
+back to its page on hl7.org under the [FHIR licence](https://hl7.org/fhir/R4/license.html).
+HL7®, FHIR® and the FHIR flame mark are registered trademarks of Health Level Seven
+International.
 
 Current build: `Sources/ModelsR4` · FHIR `4.0.1-9346c8cc45` · FHIRModels @ `3fdead0`.

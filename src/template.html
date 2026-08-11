@@ -200,8 +200,11 @@ figcaption b{color:var(--ink-2); font-weight:600}
 .srcbar .sp{flex:1}
 .btn{font:inherit; font-family:ui-monospace,Menlo,monospace; font-size:.74rem;
   color:var(--ink); background:var(--surface); border:1px solid var(--line-2);
-  border-radius:6px; padding:3px 9px; cursor:pointer}
+  border-radius:6px; padding:3px 9px; cursor:pointer;
+  text-decoration:none; display:inline-block; line-height:1.5}
 .btn:hover{border-color:var(--res); color:var(--res)}
+.srcnote{margin:0; padding:12px 24px 28px; font-size:.76rem; color:var(--muted);
+  border-top:1px solid var(--line); font-family:ui-monospace,Menlo,monospace}
 .src{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:.78rem; line-height:1.55;
   tab-size:4; padding:10px 0 40px}
 .src .l{display:grid; grid-template-columns:56px 1fr; gap:14px; white-space:pre;
@@ -218,6 +221,10 @@ figcaption b{color:var(--ink-2); font-weight:600}
 .src .k{color:var(--term)}
 .src .s{color:var(--res)}
 .src .t{color:var(--elem)}
+.src .jk{color:var(--elem)}          /* object key   */
+.src .js{color:var(--res)}           /* string value */
+.src .jn{color:var(--term)}          /* number       */
+.src .jb{color:var(--term); font-style:italic}   /* true/false/null */
 
 /* ---------- coming soon ---------- */
 .soon{max-width:640px; margin:0 auto; padding:96px 0; display:flex;
@@ -699,13 +706,13 @@ patient.managingOrganization = Reference(reference: <span class="bad">"Banana/42
 <div class="wrap wide" id="p-explorer" role="tabpanel" aria-labelledby="t-explorer" hidden>
   <section style="padding-top:40px">
     <div class="head" style="border-top:0; padding-top:0">
-      <div class="eyebrow">Every resource, the same four questions — plus the source</div>
+      <div class="eyebrow">Every resource — its structure, its source, and real data</div>
       <h2>Resource explorer</h2>
     </div>
     <p class="note">What does it nest, what does it point at, which datatypes does it hold, which
     terminology does it bind? Pick a resource — or type a datatype name like <code>Quantity</code>
-    to see which resources hold it. The <b>Swift source</b> tab shows the generated file
-    verbatim, read-only.</p>
+    to see which resources hold it. <b>Swift source</b> shows the generated file verbatim, and
+    <b>JSON example</b> shows a published HL7 instance of that resource — both read-only.</p>
   </section>
 
   <div class="explorer">
@@ -727,9 +734,11 @@ patient.managingOrganization = Reference(reference: <span class="bad">"Banana/42
         <div class="subtabs" role="tablist" aria-label="Resource detail">
           <button class="subtab" role="tab" id="s-structure" aria-selected="true">Structure</button>
           <button class="subtab" role="tab" id="s-source" aria-selected="false">Swift source</button>
+          <button class="subtab" role="tab" id="s-json" aria-selected="false">JSON example</button>
         </div>
         <div class="panebody" id="body-structure"></div>
         <div class="panebody code" id="body-source" hidden></div>
+        <div class="panebody code" id="body-json" hidden></div>
       </div>
     </div>
   </div>
@@ -739,9 +748,11 @@ patient.managingOrganization = Reference(reference: <span class="bad">"Banana/42
 
 <script id="payload" type="application/json">/*__DATA__*/</script>
 <script id="sources" type="application/json">/*__SOURCES__*/</script>
+<script id="examples" type="application/json">/*__EXAMPLES__*/</script>
 <script>
 const DATA = JSON.parse(document.getElementById('payload').textContent);
 let SOURCES = null;                       // parsed on first use — it is a few MB
+let EXAMPLES = null;                      // ditto, on first visit to the JSON tab
 const RELEASES = /*__RELEASES__*/;
 
 const $ = id => document.getElementById(id);
@@ -922,8 +933,9 @@ function renderDetail(){
         `<span class="chip">${c.o ? c.o + '.' : ''}${c.e} <span style="color:var(--muted)">${c.n} cases</span></span>`).join('')}</div>
     </div>` : ''}`;
 
-  if (detailTab === 'source') renderSource(r);
-  else $('body-source').innerHTML = '';
+  // the code tabs are rebuilt on demand; drop the stale one when it is not showing
+  if (detailTab === 'source') renderSource(r); else $('body-source').innerHTML = '';
+  if (detailTab === 'json') renderJSON(r); else $('body-json').innerHTML = '';
 }
 
 /* ---- Swift source viewer (read-only) ---- */
@@ -1004,23 +1016,93 @@ function renderSource(r){
   });
 }
 
+/* ---- published JSON example (read-only) ---- */
+const JSON_TOKENS = /("(?:[^"\\]|\\.)*")(\s*:)?|\b(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b|\b(true|false|null)\b/g;
+
+function highlightJSON(text){
+  let out = '', last = 0, m;
+  JSON_TOKENS.lastIndex = 0;
+  while ((m = JSON_TOKENS.exec(text)) !== null) {
+    out += esc(text.slice(last, m.index));
+    if (m[1] !== undefined) {
+      out += `<span class="${m[2] ? 'jk' : 'js'}">${esc(m[1])}</span>` + (m[2] ? esc(m[2]) : '');
+    } else if (m[3] !== undefined) {
+      out += `<span class="jn">${esc(m[3])}</span>`;
+    } else {
+      out += `<span class="jb">${esc(m[4])}</span>`;
+    }
+    last = m.index + m[0].length;
+  }
+  return out + esc(text.slice(last));
+}
+
+function renderJSON(r){
+  if (EXAMPLES === null) {
+    try { EXAMPLES = JSON.parse(document.getElementById('examples').textContent); }
+    catch (err) { EXAMPLES = { examples: {} }; }
+  }
+  const ex = (EXAMPLES.examples || {})[r.name];
+  if (!ex) {
+    const bundled = Object.keys(EXAMPLES.examples || {}).length;
+    $('body-json').innerHTML = `
+      <div class="srcbar">
+        <span>no published example</span>
+        <span class="sp"></span>
+      </div>
+      <div style="padding:22px 24px; display:flex; flex-direction:column; gap:12px">
+        <p class="empty">${bundled
+          ? `The FHIR ${M.fhir_version.split('-')[0]} specification publishes no example instance for <b>${esc(r.name)}</b>.`
+          : `No example cache was bundled into this build — run <code>scripts/fetch_examples.py</code> and rebuild.`}</p>
+        <p class="note" style="font-size:.85rem">Minimal shape, from the Swift declaration:</p>
+        <pre class="sample">{
+  "resourceType": "${esc(r.name)}"
+}</pre>
+      </div>`;
+    return;
+  }
+  const text = JSON.stringify(ex.json, null, 2);
+  const lines = text.split('\n');
+  $('body-json').innerHTML = `
+    <div class="srcbar">
+      <span>${esc(ex.file)}</span>
+      <span>${lines.length.toLocaleString()} lines · ${(text.length / 1000).toFixed(1)} kB</span>
+      <span>1 of ${ex.of} published ${ex.of === 1 ? 'example' : 'examples'}</span>
+      <span class="sp"></span>
+      ${ex.url ? `<a class="btn" href="${esc(ex.url)}" target="_blank" rel="noopener">Open on hl7.org</a>` : ''}
+      <button class="btn" id="copyjson">Copy JSON</button>
+    </div>
+    <div class="src json">${lines.map((ln, i) =>
+      `<div class="l"><span class="g">${i + 1}</span><span>${highlightJSON(ln) || ' '}</span></div>`).join('')}</div>
+    <p class="srcnote">Published HL7 FHIR example, unmodified · <a href="https://hl7.org/fhir/R4/license.html"
+      target="_blank" rel="noopener">FHIR licence</a></p>`;
+  $('copyjson').addEventListener('click', async e => {
+    try { await navigator.clipboard.writeText(text); e.target.textContent = 'Copied'; }
+    catch { e.target.textContent = 'Copy blocked'; }
+    setTimeout(() => { e.target.textContent = 'Copy JSON'; }, 1600);
+  });
+}
+
+const DETAIL_TABS = { structure: null, source: renderSource, json: renderJSON };
+
 function showDetailTab(name){
   detailTab = name;
-  $('s-structure').setAttribute('aria-selected', String(name === 'structure'));
-  $('s-source').setAttribute('aria-selected', String(name === 'source'));
-  $('body-structure').hidden = name !== 'structure';
-  $('body-source').hidden = name !== 'source';
-  if (name === 'source') renderSource(R.find(x => x.name === current));
+  for (const key of Object.keys(DETAIL_TABS)) {
+    $('s-' + key).setAttribute('aria-selected', String(key === name));
+    $('body-' + key).hidden = key !== name;
+  }
+  const render = DETAIL_TABS[name];
+  if (render) render(R.find(x => x.name === current));
 }
-$('s-structure').addEventListener('click', () => showDetailTab('structure'));
-$('s-source').addEventListener('click', () => showDetailTab('source'));
+Object.keys(DETAIL_TABS).forEach(key =>
+  $('s-' + key).addEventListener('click', () => showDetailTab(key)));
 
 function select(name){
   current = name;
   $('list').querySelectorAll('.row').forEach(b =>
     b.setAttribute('aria-current', String(b.dataset.name === name)));
   renderDetail();
-  if (detailTab === 'source') $('body-source').scrollTop = 0;
+  const showing = $('body-' + detailTab);
+  if (showing) showing.scrollTop = 0;
 }
 $('list').addEventListener('click', e => {
   const b = e.target.closest('.row'); if (b) select(b.dataset.name);

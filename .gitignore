@@ -4,6 +4,12 @@ dist/
 # Verbatim Swift bundles: large, and reproducible from the FHIRModels checkout
 data/*.sources.json
 
+# NB: data/*.examples.json IS committed — it comes from a one-off network fetch,
+# so keeping it in the repo is what lets every later build run offline.
+
+# Downloaded examples archive, if it is cached locally
+*.zip
+
 __pycache__/
 *.pyc
 .DS_Store

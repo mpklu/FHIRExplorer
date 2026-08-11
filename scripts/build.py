@@ -2,13 +2,15 @@
 """
 Build dist/index.html — a single self-contained page, no external requests.
 
-Reads src/template.html and injects three payloads:
+Reads src/template.html and injects four payloads:
   /*__DATA__*/      the structure payload for the built release
   /*__SOURCES__*/   verbatim Swift source per resource, for the read-only viewer
+  /*__EXAMPLES__*/  one published HL7 example instance per resource
   /*__RELEASES__*/  the release picker's options
 
 If data/<release>.json is missing (or --reparse is passed), the models are parsed
-first, so a clean checkout builds with one command.
+first, so a clean checkout builds with one command. The examples cache is optional
+and never fetched here — run scripts/fetch_examples.py once if it is missing.
 
 Usage
     python3 scripts/build.py                       # build R4 from ../FHIRModels
@@ -66,6 +68,7 @@ def main(argv=None):
 
     data_path = os.path.join(ROOT, "data", f"{version['slug']}.json")
     src_path = os.path.join(ROOT, "data", f"{version['slug']}.sources.json")
+    ex_path = os.path.join(ROOT, "data", f"{version['slug']}.examples.json")
     models_dir = os.path.join(args.fhir_repo, "Sources", version["id"])
 
     if args.reparse or not os.path.exists(data_path) or not os.path.exists(src_path):
@@ -79,7 +82,16 @@ def main(argv=None):
     sources = json.load(open(src_path))
     template = open(os.path.join(ROOT, "src", "template.html"), encoding="utf-8").read()
 
-    for token in ("/*__DATA__*/", "/*__SOURCES__*/", "/*__RELEASES__*/"):
+    if os.path.exists(ex_path):
+        examples = json.load(open(ex_path))
+    else:
+        examples = {"release": version["slug"], "source": "", "examples": {}}
+        print(f"note: {os.path.relpath(ex_path, ROOT)} not found — the JSON example tab will be "
+              f"empty. Populate it with:\n"
+              f"      python3 scripts/fetch_examples.py --release {version['slug']} "
+              f"--data data/{version['slug']}.json --out data/{version['slug']}.examples.json")
+
+    for token in ("/*__DATA__*/", "/*__SOURCES__*/", "/*__EXAMPLES__*/", "/*__RELEASES__*/"):
         if token not in template:
             sys.exit(f"template is missing {token}")
 
@@ -89,6 +101,7 @@ def main(argv=None):
     html = (template
             .replace("/*__DATA__*/", embed(payload))
             .replace("/*__SOURCES__*/", embed(sources))
+            .replace("/*__EXAMPLES__*/", embed(examples))
             .replace("/*__RELEASES__*/", json.dumps(releases, separators=(",", ":"))))
 
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
@@ -99,7 +112,7 @@ def main(argv=None):
     print(f"  release   {version['label']} · Sources/{version['id']} "
           f"· FHIR {payload['meta']['fhir_version']} @ {payload['meta']['models_commit']}")
     print(f"  resources {len(payload['resources'])} "
-          f"({len(sources)} with source bundled)")
+          f"({len(sources)} with source, {len(examples['examples'])} with a published example)")
     print(f"  selectable releases: " +
           ", ".join(v["label"] + ("" if v["available"] else " (soon)") for v in VERSIONS))
 
