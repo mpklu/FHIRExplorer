@@ -7,9 +7,12 @@ source and a real JSON instance, both read-only.
 Built by parsing a local FHIRModels checkout, so nothing in it is hand-maintained: bump the
 dependency, re-run the build, and the page matches the new models exactly.
 
+**Live: [mpklu.github.io/FHIRExplorer](https://mpklu.github.io/FHIRExplorer/)** — rebuilt and
+published by GitHub Actions on every push to `main`.
+
 ```
 python3 scripts/build.py            # parses ../FHIRModels, writes dist/index.html
-open dist/index.html                # ~5.1 MB, self-contained, no network calls
+open dist/index.html                # ~5.1 MB (0.7 MB gzipped), self-contained, no network calls
 ```
 
 ## What's in it
@@ -91,6 +94,25 @@ datatype out of those instances, using `dt_props` (which resource properties car
 and, for datatypes that never appear at the top level, `dt_keys` — property names that can only
 mean one datatype module-wide, so a deep hit is still an honest fragment. Re-run it only when
 moving to a new FHIR release.
+
+## Deploying
+
+`.github/workflows/pages.yml` rebuilds the page on every push to `main` and publishes it to
+GitHub Pages. Because `dist/` is generated rather than committed, CI reconstructs it from the
+payloads that *are* committed plus a **pinned** sparse checkout of `apple/FHIRModels`:
+
+```yaml
+repository: apple/FHIRModels
+ref: 3fdead0f6459d7d3480d12c514ae27da31974a41   # bump this to move releases
+sparse-checkout: Sources/ModelsR4
+```
+
+Same inputs in, same page out — a clean clone plus that checkout reproduces `dist/index.html`
+byte for byte. To build against a different models commit without editing the file, run the
+workflow manually (**Actions → Build and deploy to GitHub Pages → Run workflow**) and give it a
+ref; the input is validated as a plain SHA, tag or branch name before it reaches `checkout`.
+
+One-time repo setting: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
 ## Adding a FHIR release
 

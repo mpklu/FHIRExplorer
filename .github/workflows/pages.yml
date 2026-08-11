@@ -1,0 +1,83 @@
+name: Build and deploy to GitHub Pages
+
+# dist/ is generated, so it is not in git: CI rebuilds the page from the parsed
+# payloads that *are* committed, plus a pinned checkout of apple/FHIRModels.
+# Nothing here touches the network beyond the two checkouts.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      fhirmodels_ref:
+        description: apple/FHIRModels commit to build from
+        required: false
+        default: 3fdead0f6459d7d3480d12c514ae27da31974a41
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it mid-publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out FHIRExplorer
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Validate the dispatch input before it reaches actions/checkout, rather
+      # than interpolating it into `ref:` as-is.
+      - name: Resolve the FHIRModels ref
+        id: models
+        env:
+          REQUESTED: ${{ github.event.inputs.fhirmodels_ref }}
+        run: |
+          DEFAULT=3fdead0f6459d7d3480d12c514ae27da31974a41
+          REF="${REQUESTED:-$DEFAULT}"
+          if ! printf '%s' "$REF" | grep -Eq '^([0-9a-fA-F]{7,40}|[A-Za-z0-9._/-]{1,64})$'; then
+            echo "::error::refusing ref that is not a plain SHA, tag or branch name"
+            exit 1
+          fi
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "building against apple/FHIRModels@$REF"
+
+      - name: Check out apple/FHIRModels (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: apple/FHIRModels
+          ref: ${{ steps.models.outputs.ref }}
+          path: .fhirmodels
+          sparse-checkout: Sources/ModelsR4
+
+      - name: Build dist/index.html
+        run: python3 scripts/build.py --reparse --fhir-repo .fhirmodels
+
+      - name: Check the build produced a page
+        run: |
+          test -s dist/index.html
+          touch dist/.nojekyll
+          echo "page: $(du -h dist/index.html | cut -f1)"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
