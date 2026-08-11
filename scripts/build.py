@@ -111,8 +111,11 @@ def main(argv=None):
     print(f"built {args.out} ({os.path.getsize(args.out) / 1e6:.2f} MB)")
     print(f"  release   {version['label']} · Sources/{version['id']} "
           f"· FHIR {payload['meta']['fhir_version']} @ {payload['meta']['models_commit']}")
-    print(f"  resources {len(payload['resources'])} "
-          f"({len(sources)} with source, {len(examples['examples'])} with a published example)")
+    frags = examples.get("fragments", {})
+    print(f"  explorers {len(payload['resources'])} resources "
+          f"({len(examples['examples'])} with a published example) · "
+          f"{len(payload['datatypes'])} datatypes ({len(frags)} with a real fragment)")
+    print(f"  sources   {len(sources)} Swift files")
     print(f"  selectable releases: " +
           ", ".join(v["label"] + ("" if v["available"] else " (soon)") for v in VERSIONS))
 

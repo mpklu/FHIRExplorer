@@ -88,6 +88,79 @@ def choose(resource: str, candidates: list[tuple[str, int, dict]]):
         sorted(pool, key=lambda c: (c[1], c[0]))[0]
 
 
+def find_fragments(payload: dict, picked: dict) -> dict:
+    """A real JSON fragment per datatype, lifted out of a resource's own example.
+
+    `dt_props` says which resource properties carry each datatype, so for e.g.
+    HumanName we can read `name[0]` out of patient-example.json rather than
+    inventing a shape. The richest fragment under 4 kB wins.
+    """
+    fragments = {}
+    for datatype, candidates in payload.get("dt_props", {}).items():
+        best = None
+        for resource, prop, is_array in candidates:
+            example = picked.get(resource)
+            if not example:
+                continue
+            value = example["json"].get(prop)
+            if is_array:
+                value = value[0] if isinstance(value, list) and value else None
+            if not isinstance(value, (dict, list)) or not value:
+                continue
+            size = len(json.dumps(value))
+            if size > 4000:
+                continue
+            if best is None or size > best[0]:
+                best = (size, {"from": example["file"],
+                               "path": f"{resource}.{prop}" + ("[0]" if is_array else ""),
+                               "url": example["url"],
+                               "json": value})
+        if best:
+            fragments[datatype] = best[1]
+
+    # Datatypes that never appear as a resource-level property (Extension,
+    # ElementDefinition's helpers, …) need a deeper search. `dt_keys` only lists
+    # property names that can mean exactly one datatype module-wide, so a hit is
+    # still an honest fragment of that type.
+    for datatype, keys in payload.get("dt_keys", {}).items():
+        if datatype in fragments or not keys:
+            continue
+        wanted = set(keys)
+        best = None
+        for resource, example in sorted(picked.items()):
+            for path, value in walk(example["json"], resource):
+                key = path.rsplit(".", 1)[-1].split("[")[0]
+                if key not in wanted or not isinstance(value, (dict, list)) or not value:
+                    continue
+                size = len(json.dumps(value))
+                if size > 4000:
+                    continue
+                if best is None or size > best[0]:
+                    best = (size, {"from": example["file"], "path": path,
+                                   "url": example["url"], "json": value})
+            if best and best[0] > 120:      # good enough; stop scanning the corpus
+                break
+        if best:
+            fragments[datatype] = best[1]
+    return fragments
+
+
+def walk(node, path: str, depth: int = 0):
+    """Yield (dotted path, value) for every object/array member, breadth-ish."""
+    if depth > 6:
+        return
+    if isinstance(node, dict):
+        for k, v in node.items():
+            child = f"{path}.{k}"
+            if isinstance(v, list):
+                for i, item in enumerate(v):
+                    yield f"{child}[{i}]", item
+                    yield from walk(item, f"{child}[{i}]", depth + 1)
+            else:
+                yield child, v
+                yield from walk(v, child, depth + 1)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -97,7 +170,8 @@ def main(argv=None):
     ap.add_argument("--archive-cache", default="", help="keep/reuse the downloaded zip here")
     args = ap.parse_args(argv)
 
-    resources = [r["name"] for r in json.load(open(args.data))["resources"]]
+    payload = json.load(open(args.data))
+    resources = [r["name"] for r in payload["resources"]]
     index = index_archive(download(ARCHIVES[args.release], args.archive_cache))
 
     picked, missing = {}, []
@@ -114,16 +188,24 @@ def main(argv=None):
             "json": doc,
         }
 
+    fragments = find_fragments(payload, picked)
+
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w") as fh:
         json.dump({"release": args.release,
                    "source": ARCHIVES[args.release],
-                   "examples": picked}, fh, separators=(",", ":"))
+                   "examples": picked,
+                   "fragments": fragments}, fh, separators=(",", ":"))
 
+    datatypes = [d["name"] for d in payload.get("datatypes", [])]
+    no_frag = [d for d in datatypes if d not in fragments]
     print(f"wrote {args.out} ({os.path.getsize(args.out) / 1e6:.2f} MB)")
     print(f"  {len(picked)}/{len(resources)} resources have a published example")
     if missing:
         print(f"  no published example: {', '.join(missing)}")
+    print(f"  {len(datatypes) - len(no_frag)}/{len(datatypes)} datatypes have a real fragment")
+    if no_frag:
+        print(f"  no fragment found: {', '.join(no_frag)}")
 
 
 if __name__ == "__main__":

@@ -163,17 +163,31 @@ def parse(models_dir: str) -> dict:
         for d in reached:
             edges.add((name, d))
 
-    # --- how many distinct types hold each datatype -----------------------
+    # --- who holds each datatype, and what each datatype holds -------------
     usage: collections.Counter = collections.Counter()
-    for name, t in types.items():
+    holders: dict[str, list[str]] = collections.defaultdict(list)
+    holds: dict[str, set[str]] = collections.defaultdict(set)
+    # datatype → resource-level properties carrying it, for pulling a real JSON
+    # fragment out of that resource's published example
+    dt_props: dict[str, list] = collections.defaultdict(list)
+
+    for name, t in sorted(types.items()):
         held = set()
         for p in t["props"]:
-            held |= datatypes_in(p["type"])
+            found = datatypes_in(p["type"])
+            held |= found
+            if t["role"] in ("domain-resource", "resource"):
+                for d in found:
+                    dt_props[d].append([name, p["name"], p["type"].lstrip().startswith("[")])
         for grp in nested.get(name, []):
             for c in grp["cases"]:
                 held |= datatypes_in(c["payload"])
-        for d in held - {name}:
+        held -= {name}
+        for d in held:
             usage[d] += 1
+            holders[d].append(name)
+        if name in datatype_names or name in shared_backbones:
+            holds[name] = held
 
     # --- per-resource detail ---------------------------------------------
     resources = []
@@ -220,12 +234,64 @@ def parse(models_dir: str) -> dict:
             "ch": choices,
         })
 
-    datatypes = sorted(
-        ({"name": n, "used": usage.get(n, 0), "props": len(types[n]["props"]),
-          "base": types[n]["conforms"][0] if types[n]["conforms"] else "",
-          "kind": types[n]["kind"], "shared_backbone": n in shared_backbones}
-         for n in sorted(datatype_names | shared_backbones)),
-        key=lambda d: -d["used"])
+    # --- JSON keys that can only ever mean one datatype --------------------
+    # Used to lift a real fragment for datatypes that never appear as a
+    # resource-level property. A key qualifies only if *every* declaration of
+    # that property name anywhere in the module resolves to the same single
+    # datatype — so "extension" and "slicing" qualify, "code" and "value" don't.
+    name_meaning: dict[str, set[str]] = collections.defaultdict(set)
+    for t in types.values():
+        for p in t["props"]:
+            found = datatypes_in(p["type"])
+            name_meaning[p["name"]].add(next(iter(found)) if len(found) == 1 and
+                                        len(idents(p["type"])) <= 2 else "?")
+    dt_keys: dict[str, list[str]] = collections.defaultdict(list)
+    for prop_name, meanings in sorted(name_meaning.items()):
+        if len(meanings) == 1:
+            only = next(iter(meanings))
+            if only != "?":
+                dt_keys[only].append(prop_name)
+
+    alias_of: dict[str, list[str]] = collections.defaultdict(list)
+    for a, target in aliases.items():
+        if target in datatype_names:
+            alias_of[target].append(a)
+
+    def datatype_entry(n: str) -> dict:
+        t = types[n]
+        by_role = collections.defaultdict(list)
+        for h in holders.get(n, []):
+            by_role[types[h]["role"]].append(h)
+        return {
+            "name": n,
+            "kind": t["kind"],
+            "base": t["conforms"][0] if t["conforms"] else "",
+            "file": t["file"] + ".swift",
+            "lines": files[t["file"]]["lines"],
+            "used": usage.get(n, 0),
+            "shared_backbone": n in shared_backbones,
+            "aliases": sorted(alias_of.get(n, [])),
+            "doc": "",                      # filled in from the file's /** … */ block below
+            "props": [{"n": p["n"], "t": p["t"], "d": p["d"]} for p in documented.get(n, [])],
+            "nprops": len(t["props"]),
+            "holds": sorted(holds.get(n, set())),
+            "holders": {role: sorted(names) for role, names in sorted(by_role.items())},
+            "choices": [{"e": g["enum"], "n": len(g["cases"]),
+                         "indirect": sum(1 for c in g["cases"] if c["indirect"])}
+                        for g in nested.get(n, [])],
+        }
+
+    datatypes = sorted((datatype_entry(n) for n in sorted(datatype_names | shared_backbones)),
+                       key=lambda d: -d["used"])
+
+    # a one-line summary per datatype, from the /** … */ block above its declaration
+    for entry in datatypes:
+        src = open(os.path.join(models_dir, entry["file"]), encoding="utf-8").read()
+        decl = re.search(r'^(?:public |open )?(?:indirect )?(?:final )?(?:struct|class) '
+                         + re.escape(entry["name"]) + r'\b', src, re.M)
+        before = src[:decl.start()] if decl else src
+        blocks = re.findall(r'/\*\*\n (.+?)\n', before)
+        entry["doc"] = blocks[-1].strip() if blocks else ""
 
     all_choices = sorted(
         ({"owner": owner, "enum": g["enum"], "n": len(g["cases"]),
@@ -263,6 +329,12 @@ def parse(models_dir: str) -> dict:
         "roles": dict(roles),
         "resources": resources,
         "datatypes": datatypes,
+        # datatype → [[resource, property, isArray], …]: where to look for a real
+        # JSON fragment of that datatype inside a resource's published example
+        "dt_props": {d: v[:14] for d, v in sorted(dt_props.items())},
+        # datatype → property names that unambiguously mean that datatype, for a
+        # deeper (but still safe) fragment search
+        "dt_keys": {d: v[:12] for d, v in sorted(dt_keys.items())},
         "dt_edges": dt_edges,
         "choices_top": all_choices[:14],
         "aliases": {k: v for k, v in sorted(aliases.items()) if v in datatype_names},
@@ -288,10 +360,16 @@ def git_commit(path: str) -> str:
         return ""
 
 
-def collect_sources(models_dir: str, resources: list[dict]) -> dict[str, str]:
-    """Verbatim Swift source for each resource's file, for the read-only viewer."""
-    return {r["name"]: open(os.path.join(models_dir, r["file"]), encoding="utf-8").read()
-            for r in resources}
+def collect_sources(models_dir: str, payload: dict) -> dict[str, str]:
+    """Verbatim Swift source for every file the viewer can open, keyed by filename.
+
+    Keyed by file rather than by type because several datatypes share one file
+    (ElementDefinition and its eight helpers, for one).
+    """
+    wanted = sorted({e["file"] for e in payload["resources"]} |
+                    {e["file"] for e in payload["datatypes"]})
+    return {name: open(os.path.join(models_dir, name), encoding="utf-8").read()
+            for name in wanted}
 
 
 def main(argv=None):
@@ -321,11 +399,13 @@ def main(argv=None):
     print(f"  wrote {args.out} ({os.path.getsize(args.out) / 1000:.0f} kB)")
 
     if args.sources_out:
-        sources = collect_sources(args.models_dir, payload["resources"])
+        sources = collect_sources(args.models_dir, payload)
         with open(args.sources_out, "w") as fh:
             json.dump(sources, fh, separators=(",", ":"))
         print(f"  wrote {args.sources_out} "
               f"({os.path.getsize(args.sources_out) / 1e6:.2f} MB, {len(sources)} files)")
+    print(f"  {len(payload['datatypes'])} datatypes detailed "
+          f"({sum(1 for d in payload['datatypes'] if d['props'])} with documented properties)")
 
 
 if __name__ == "__main__":

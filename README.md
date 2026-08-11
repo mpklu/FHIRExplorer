@@ -1,15 +1,15 @@
 # FHIRExplorer
 
 A single-page, offline map of [Apple's FHIRModels](https://github.com/apple/FHIRModels) — what
-the generated Swift types are, how they relate, and for every resource its Swift source and a
-real JSON instance, both read-only.
+the generated Swift types are, how they relate, and for every resource *and* datatype its Swift
+source and a real JSON instance, both read-only.
 
 Built by parsing a local FHIRModels checkout, so nothing in it is hand-maintained: bump the
 dependency, re-run the build, and the page matches the new models exactly.
 
 ```
 python3 scripts/build.py            # parses ../FHIRModels, writes dist/index.html
-open dist/index.html                # ~4.6 MB, self-contained, no network calls
+open dist/index.html                # ~5.1 MB, self-contained, no network calls
 ```
 
 ## What's in it
@@ -36,6 +36,14 @@ module's only two classes), datatype reuse counts, and the 186 nested `value[x]`
   to its page on hl7.org. 141 of 146 resources have one; the five `Substance*` resources the
   spec publishes no example for show their minimal shape instead. Read-only.
 
+**Data type explorer** — the 41 datatypes and 8 shared backbones, sorted by reach. Same three
+tabs, plus the thing the Swift source cannot give you: a **reverse index** of every type that
+holds this one, grouped into resources / backbone structs / datatypes. Its **JSON example** is a
+real fragment of that datatype lifted out of a published resource instance, labelled with the
+path it came from (`RelatedPerson.name[0]` in `relatedperson-example.json`) — 33 of 49 datatypes
+have one. Chips cross-link between the two explorers, and clicking a bar on the Overview chart
+opens that datatype.
+
 **Release picker** — R4 is built. The other releases Apple ships modules for (DSTU2, STU3, R4B,
 R5, R6 ballot) show a "coming soon" panel with the exact commands to add them.
 
@@ -44,13 +52,13 @@ R5, R6 ballot) show a "coming soon" panel with the exact commands to add them.
 ```
 FHIRExplorer/
 ├── scripts/parse_models.py   # Swift module → structure JSON + source bundle
-├── scripts/fetch_examples.py # hl7.org examples archive → one example per resource
+├── scripts/fetch_examples.py # hl7.org examples → one per resource + one fragment per datatype
 ├── scripts/build.py          # template + JSON → dist/index.html (self-contained)
 ├── src/template.html         # the page: markup, CSS, diagrams, client JS
-├── data/r4.json              # parsed structure payload (committed, ~170 kB)
-├── data/r4.examples.json     # published HL7 examples (committed, ~570 kB)
-├── data/r4.sources.json      # verbatim Swift per resource (generated, ~3.8 MB, ignored)
-└── dist/index.html           # build output (generated, ~4.6 MB, ignored)
+├── data/r4.json              # parsed structure payload (committed, ~290 kB)
+├── data/r4.examples.json     # HL7 examples + datatype fragments (committed, ~580 kB)
+├── data/r4.sources.json      # verbatim Swift, keyed by file (generated, ~4.1 MB, ignored)
+└── dist/index.html           # build output (generated, ~5.1 MB, ignored)
 ```
 
 `data/*.sources.json` and `dist/` are generated from the FHIRModels checkout, so they stay out of
@@ -78,8 +86,11 @@ python3 scripts/fetch_examples.py --release r4 \
 
 That downloads `hl7.org/fhir/R4/examples-json.zip` (~20 MB), indexes all 2,912 instances by their
 own `resourceType`, and keeps one per resource — the canonical `<resource>-example.json` where the
-spec publishes one, otherwise the richest instance under 24 kB. Re-run it only when moving to a
-new FHIR release.
+spec publishes one, otherwise the richest instance under 24 kB. It then lifts one fragment per
+datatype out of those instances, using `dt_props` (which resource properties carry that datatype)
+and, for datatypes that never appear at the top level, `dt_keys` — property names that can only
+mean one datatype module-wide, so a deep hit is still an honest fragment. Re-run it only when
+moving to a new FHIR release.
 
 ## Adding a FHIR release
 
@@ -103,6 +114,7 @@ Each build embeds one release; the picker offers the rest as "coming soon".
 - nested `…X` enums and their cases (including `indirect case`) → `value[x]` choice slots
 - the `///` doc comment above each property → the only in-code hint about reference targets
 - `public typealias` → `Age`/`Count`/`Distance`/`Duration` resolve to `Quantity`
+- every holder of every datatype → the reverse index behind the Data types tab
 
 ## What it cannot show
 

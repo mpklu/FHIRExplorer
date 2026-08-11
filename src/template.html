@@ -122,6 +122,7 @@ figcaption b{color:var(--ink-2); font-weight:600}
 .bars{display:flex; flex-direction:column; gap:2px}
 .bar{display:grid; grid-template-columns:168px 1fr 62px; align-items:center; gap:12px;
   padding:3px 8px; border-radius:6px}
+.bar{cursor:pointer}
 .bar:hover{background:var(--surface-2)}
 .bar .nm{font-family:ui-monospace,Menlo,monospace; font-size:.8rem;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -182,6 +183,15 @@ figcaption b{color:var(--ink-2); font-weight:600}
   border:1px solid var(--line-2); border-radius:6px; background:var(--surface-2)}
 .chip.b{border-left:2px solid var(--elem)}
 .chip.t{border-left:2px solid var(--term)}
+button.chip.link{font:inherit; font-family:ui-monospace,Menlo,monospace; font-size:.75rem;
+  color:var(--ink); cursor:pointer}
+button.chip.link:hover{border-color:var(--res); color:var(--res)}
+.holders{display:flex; flex-direction:column; gap:6px; padding:9px 11px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:9px}
+.holders + .holders{margin-top:8px}
+.rolelabel{font-family:ui-monospace,Menlo,monospace; font-size:.7rem; letter-spacing:.06em;
+  color:var(--muted)}
+.holders .empty{font-size:.76rem}
 .reflist{display:flex; flex-direction:column; gap:1px; background:var(--line);
   border:1px solid var(--line); border-radius:9px; overflow:hidden}
 .reflist > div{background:var(--surface); padding:8px 11px; display:flex; gap:10px;
@@ -282,6 +292,7 @@ footer b{color:var(--ink-2)}
   <div class="tabs" role="tablist" aria-label="Views">
     <button class="tab" role="tab" id="t-overview" aria-controls="p-overview" aria-selected="true">Overview</button>
     <button class="tab" role="tab" id="t-explorer" aria-controls="p-explorer" aria-selected="false">Resource explorer</button>
+    <button class="tab" role="tab" id="t-datatypes" aria-controls="p-datatypes" aria-selected="false">Data types</button>
   </div>
   <div class="verpick">
     <label for="ver">FHIR release</label>
@@ -588,7 +599,8 @@ footer b{color:var(--ink-2)}
     <figure>
       <div class="bars" id="bars"></div>
       <figcaption>Sorted by reach; bars share one scale. The top three are what any mapping layer
-      spends its time constructing.</figcaption>
+      spends its time constructing. <b>Click a bar</b> to open that datatype in the Data types
+      tab.</figcaption>
     </figure>
   </div>
 </section>
@@ -715,30 +727,71 @@ patient.managingOrganization = Reference(reference: <span class="bad">"Banana/42
     <b>JSON example</b> shows a published HL7 instance of that resource — both read-only.</p>
   </section>
 
-  <div class="explorer">
+  <div class="explorer" id="ex-resources">
     <div class="controls">
-      <input type="search" id="q" placeholder="Filter by name, summary, or a datatype it holds…" aria-label="Filter resources">
-      <select id="sort" aria-label="Sort resources">
+      <input type="search" class="q" placeholder="Filter by name, summary, or a datatype it holds…" aria-label="Filter resources">
+      <select class="sort" aria-label="Sort resources">
         <option value="name">A → Z</option>
         <option value="lines">Most lines</option>
         <option value="refs">Most references</option>
         <option value="bb">Most nested structs</option>
         <option value="dt">Most datatypes</option>
       </select>
-      <span class="hits" id="hits"></span>
+      <span class="hits"></span>
     </div>
     <div class="panes">
-      <div class="list" id="list" role="listbox" aria-label="Resources"></div>
+      <div class="list" role="listbox" aria-label="Resources"></div>
       <div class="pane">
-        <div class="dhead" id="dhead"></div>
+        <div class="dhead"></div>
         <div class="subtabs" role="tablist" aria-label="Resource detail">
-          <button class="subtab" role="tab" id="s-structure" aria-selected="true">Structure</button>
-          <button class="subtab" role="tab" id="s-source" aria-selected="false">Swift source</button>
-          <button class="subtab" role="tab" id="s-json" aria-selected="false">JSON example</button>
+          <button class="subtab" role="tab" data-tab="structure" aria-selected="true">Structure</button>
+          <button class="subtab" role="tab" data-tab="source" aria-selected="false">Swift source</button>
+          <button class="subtab" role="tab" data-tab="json" aria-selected="false">JSON example</button>
         </div>
-        <div class="panebody" id="body-structure"></div>
-        <div class="panebody code" id="body-source" hidden></div>
-        <div class="panebody code" id="body-json" hidden></div>
+        <div class="panebody" data-body="structure"></div>
+        <div class="panebody code" data-body="source" hidden></div>
+        <div class="panebody code" data-body="json" hidden></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== DATATYPES ===================== -->
+<div class="wrap wide" id="p-datatypes" role="tabpanel" aria-labelledby="t-datatypes" hidden>
+  <section style="padding-top:40px">
+    <div class="head" style="border-top:0; padding-top:0">
+      <div class="eyebrow">The 41 datatypes and 8 shared backbones every resource builds from</div>
+      <h2>Data type explorer</h2>
+    </div>
+    <p class="note">These are the pieces you actually construct when mapping into FHIR. For each
+    one: its properties, what it holds, and <b>which types hold it</b> — the reverse index the
+    Swift source can't give you. <b>JSON example</b> shows a real fragment of that datatype lifted
+    out of a published HL7 resource instance, with the path it came from.</p>
+  </section>
+
+  <div class="explorer" id="ex-datatypes">
+    <div class="controls">
+      <input type="search" class="q" placeholder="Filter by name, summary, or a type it holds…" aria-label="Filter data types">
+      <select class="sort" aria-label="Sort data types">
+        <option value="used">Most held</option>
+        <option value="name">A → Z</option>
+        <option value="nprops">Most properties</option>
+        <option value="lines">Most lines</option>
+      </select>
+      <span class="hits"></span>
+    </div>
+    <div class="panes">
+      <div class="list" role="listbox" aria-label="Data types"></div>
+      <div class="pane">
+        <div class="dhead"></div>
+        <div class="subtabs" role="tablist" aria-label="Data type detail">
+          <button class="subtab" role="tab" data-tab="structure" aria-selected="true">Structure</button>
+          <button class="subtab" role="tab" data-tab="source" aria-selected="false">Swift source</button>
+          <button class="subtab" role="tab" data-tab="json" aria-selected="false">JSON example</button>
+        </div>
+        <div class="panebody" data-body="structure"></div>
+        <div class="panebody code" data-body="source" hidden></div>
+        <div class="panebody code" data-body="json" hidden></div>
       </div>
     </div>
   </div>
@@ -778,10 +831,10 @@ function applyRelease(id){
   const r = RELEASES.find(x => x.id === id);
   const ok = !!(r && r.available);
   $('p-soon').hidden = ok;
-  ['t-overview','t-explorer'].forEach(t => { $(t).disabled = !ok; });
+  ['t-overview','t-explorer','t-datatypes'].forEach(t => { $(t).disabled = !ok; });
   if (ok) { showTab(activeTab); }
   else {
-    $('p-overview').hidden = true; $('p-explorer').hidden = true;
+    ['p-overview','p-explorer','p-datatypes'].forEach(p => { $(p).hidden = true; });
     $('soon-title').textContent = `${r.label} is not built yet`;
     $('soon-body').textContent =
       `FHIRExplorer ships with one release parsed: ${M.fhir_version} from Sources/${M.module}. ` +
@@ -798,14 +851,15 @@ verSel.addEventListener('change', () => applyRelease(verSel.value));
 let activeTab = 'overview';
 function showTab(name){
   activeTab = name;
-  for (const n of ['overview','explorer']) {
+  for (const n of ['overview','explorer','datatypes']) {
     $('p-' + n).hidden = n !== name;
     $('t-' + n).setAttribute('aria-selected', String(n === name));
   }
-  if (name === 'explorer' && !listRendered) { renderList(); renderDetail(); }
+  if (name === 'explorer') resourceExplorer.ensure();
+  if (name === 'datatypes') datatypeExplorer.ensure();
 }
-$('t-overview').addEventListener('click', () => showTab('overview'));
-$('t-explorer').addEventListener('click', () => showTab('explorer'));
+['overview','explorer','datatypes'].forEach(n =>
+  $('t-' + n).addEventListener('click', () => showTab(n)));
 
 /* ---------------- tooltip ---------------- */
 const tip = $('tip');
@@ -835,110 +889,16 @@ $('bars').addEventListener('mousemove', e => {
              `held by ${(+row.dataset.u).toLocaleString()} of ${C.types_declared} types (${pct}%)`);
 });
 $('bars').addEventListener('mouseleave', hideTip);
+$('bars').addEventListener('click', e => {
+  const row = e.target.closest('.bar');
+  if (row) goTo('datatype', row.dataset.n);
+});
 
 $('choicerows').innerHTML = DATA.choices_top.slice(0, 10).map(c => `
   <tr><td class="m">${c.owner}</td><td class="m">${c.enum}</td>
       <td class="n">${c.n}</td><td class="n">${c.indirect}</td></tr>`).join('');
 
-/* ---------------- explorer ---------------- */
-const R = DATA.resources;
-let current = R.some(r => r.name === 'Patient') ? 'Patient' : R[0].name;
-let listRendered = false, detailTab = 'structure';
-
-const metric = r => ({ name: r.name, lines: r.lines, refs: r.refs.length,
-                       bb: r.bb.length, dt: r.dt.length })[$('sort').value];
-
-function filtered(){
-  const q = $('q').value.trim().toLowerCase();
-  const out = R.filter(r => !q || r.name.toLowerCase().includes(q) ||
-    (r.doc || '').toLowerCase().includes(q) ||
-    r.dt.some(d => d.toLowerCase().includes(q)) ||
-    r.bb.some(b => b.n.toLowerCase().includes(q)));
-  const k = $('sort').value;
-  out.sort(k === 'name' ? (a, b) => a.name.localeCompare(b.name)
-                        : (a, b) => metric(b) - metric(a) || a.name.localeCompare(b.name));
-  return out;
-}
-
-function renderList(){
-  const rows = filtered();
-  listRendered = true;
-  $('hits').textContent = `${rows.length} of ${R.length}`;
-  const unit = { name:'', lines:'ln', refs:'ref', bb:'nested', dt:'types' }[$('sort').value];
-  $('list').innerHTML = rows.map(r => `
-    <button class="row" role="option" data-name="${r.name}" aria-current="${r.name === current}">
-      <span class="rn">${r.name}</span>
-      <span class="rm">${$('sort').value === 'name' ? r.lines + ' ln' : metric(r) + ' ' + unit}</span>
-    </button>`).join('') || '<p class="empty" style="padding:10px">No resource matches.</p>';
-  if (rows.length && !rows.some(r => r.name === current)) select(rows[0].name);
-}
-
-function renderDetail(){
-  const r = R.find(x => x.name === current); if (!r) return;
-  const codeMap = new Map();
-  r.codes.forEach(c => codeMap.set(c.e, (codeMap.get(c.e) || 0) + 1));
-
-  $('dhead').innerHTML = `
-    <h3>${r.name}</h3>
-    <p>${esc(r.doc || '')}</p>
-    <div class="chips">
-      <span class="pill ${r.kind === 'DomainResource' ? 'res' : ''}">${r.kind}</span>
-      <span class="pill">${r.file} · ${r.lines.toLocaleString()} lines</span>
-    </div>`;
-
-  $('body-structure').innerHTML = `
-    <div class="metrics">
-      <div><b>${r.props}</b><span>own properties</span></div>
-      <div><b>${r.bb.length}</b><span>nested structs</span></div>
-      <div><b>${r.refs.length}</b><span>references</span></div>
-      <div><b>${r.dt.length}</b><span>datatypes</span></div>
-      <div><b>${codeMap.size}</b><span>code enums</span></div>
-      <div><b>${r.ch.length}</b><span>choice slots</span></div>
-    </div>
-
-    <div class="block">
-      <h4>Nests — private backbone structs</h4>
-      ${r.bb.length ? `<div class="chips">${r.bb.map(b =>
-        `<span class="chip b">${b.n} <span style="color:var(--muted)">${b.p}</span></span>`).join('')}</div>`
-        : '<p class="empty">Flat — no nested structs.</p>'}
-    </div>
-
-    <div class="block">
-      <h4>Points at — Reference properties</h4>
-      ${r.refs.length ? `<div class="reflist">${r.refs.map(f => `
-        <div>
-          ${f.o ? `<span class="own">${f.o}.</span>` : ''}
-          <span class="p">${f.n}${f.a ? '[]' : ''}</span>
-          <span class="arr">→ Reference</span>
-          <span class="doc">${esc(f.d)}</span>
-        </div>`).join('')}</div>`
-        : '<p class="empty">Holds no references.</p>'}
-    </div>
-
-    <div class="block">
-      <h4>Holds — shared datatypes</h4>
-      <div class="chips">${r.dt.map(d => `<span class="chip">${d}</span>`).join('')}</div>
-    </div>
-
-    <div class="block">
-      <h4>Binds — terminology enums</h4>
-      ${codeMap.size ? `<div class="chips">${[...codeMap].map(([e, n]) =>
-        `<span class="chip t">${e}${n > 1 ? ` <span style="color:var(--muted)">×${n}</span>` : ''}</span>`).join('')}</div>`
-        : '<p class="empty">No required code bindings.</p>'}
-    </div>
-
-    ${r.ch.length ? `<div class="block">
-      <h4>Chooses — value[x] enums</h4>
-      <div class="chips">${r.ch.map(c =>
-        `<span class="chip">${c.o ? c.o + '.' : ''}${c.e} <span style="color:var(--muted)">${c.n} cases</span></span>`).join('')}</div>
-    </div>` : ''}`;
-
-  // the code tabs are rebuilt on demand; drop the stale one when it is not showing
-  if (detailTab === 'source') renderSource(r); else $('body-source').innerHTML = '';
-  if (detailTab === 'json') renderJSON(r); else $('body-json').innerHTML = '';
-}
-
-/* ---- Swift source viewer (read-only) ---- */
+/* ---------------- shared code viewers ---------------- */
 const TOKENS = new RegExp([
   '(/\\*[\\s\\S]*?\\*/)',                       // block comment
   '(//[^\\n]*)',                                // line comment
@@ -951,7 +911,7 @@ const TOKENS = new RegExp([
   '\\b([A-Z][A-Za-z0-9_]*)\\b'                  // type names
 ].join('|'), 'g');
 
-function highlight(src){
+function highlightSwift(src){
   let out = '', last = 0, m;
   TOKENS.lastIndex = 0;
   while ((m = TOKENS.exec(src)) !== null) {
@@ -963,60 +923,6 @@ function highlight(src){
   return out + esc(src.slice(last));
 }
 
-let showHeader = false;   // every generated file opens with the same Apache-2.0 block
-
-function firstCodeLine(lines){
-  let i = 0;
-  while (i < lines.length) {
-    const t = lines[i].trim();
-    if (t === '' || t.startsWith('//')) i++; else break;
-  }
-  return i;
-}
-
-function renderSource(r){
-  if (SOURCES === null) {
-    try { SOURCES = JSON.parse(document.getElementById('sources').textContent); }
-    catch (err) { SOURCES = {}; }
-  }
-  const src = SOURCES[r.name];
-  if (src === undefined) {
-    $('body-source').innerHTML =
-      `<div style="padding:24px"><p class="empty">Source for ${esc(r.name)} was not bundled into this build.</p></div>`;
-    return;
-  }
-  const lines = src.split('\n');
-  const skip = firstCodeLine(lines);
-  const collapse = !showHeader && skip > 5;
-  const from = collapse ? skip : 0;
-  const body = (collapse
-      ? `<button class="l fold" id="unfold"><span class="g">1</span><span>// … ${skip}-line license header — show</span></button>`
-      : '') +
-    lines.slice(from).map((ln, i) =>
-      `<div class="l"><span class="g">${from + i + 1}</span><span>${highlight(ln) || ' '}</span></div>`).join('');
-
-  $('body-source').innerHTML = `
-    <div class="srcbar">
-      <span>Sources/${M.module}/${r.file}</span>
-      <span>${lines.length.toLocaleString()} lines</span>
-      <span>read-only · © Apple Inc. · Apache-2.0</span>
-      <span class="sp"></span>
-      ${skip > 5 ? `<button class="btn" id="togglehdr">${showHeader ? 'Hide header' : 'Show header'}</button>` : ''}
-      <button class="btn" id="copysrc">Copy file</button>
-    </div>
-    <div class="src">${body}</div>`;
-
-  const toggle = () => { showHeader = !showHeader; renderSource(r); };
-  if ($('togglehdr')) $('togglehdr').addEventListener('click', toggle);
-  if ($('unfold')) $('unfold').addEventListener('click', toggle);
-  $('copysrc').addEventListener('click', async e => {
-    try { await navigator.clipboard.writeText(src); e.target.textContent = 'Copied'; }
-    catch { e.target.textContent = 'Copy blocked'; }
-    setTimeout(() => { e.target.textContent = 'Copy file'; }, 1600);
-  });
-}
-
-/* ---- published JSON example (read-only) ---- */
 const JSON_TOKENS = /("(?:[^"\\]|\\.)*")(\s*:)?|\b(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b|\b(true|false|null)\b/g;
 
 function highlightJSON(text){
@@ -1036,80 +942,408 @@ function highlightJSON(text){
   return out + esc(text.slice(last));
 }
 
-function renderJSON(r){
-  if (EXAMPLES === null) {
-    try { EXAMPLES = JSON.parse(document.getElementById('examples').textContent); }
-    catch (err) { EXAMPLES = { examples: {} }; }
+function numbered(lines, from, highlighter, lead){
+  return (lead || '') + lines.slice(from).map((ln, i) =>
+    `<div class="l"><span class="g">${from + i + 1}</span><span>${highlighter(ln) || ' '}</span></div>`
+  ).join('');
+}
+
+function firstCodeLine(lines){
+  let i = 0;
+  while (i < lines.length) {
+    const t = lines[i].trim();
+    if (t === '' || t.startsWith('//')) i++; else break;
   }
-  const ex = (EXAMPLES.examples || {})[r.name];
-  if (!ex) {
-    const bundled = Object.keys(EXAMPLES.examples || {}).length;
-    $('body-json').innerHTML = `
+  return i;
+}
+
+function copyButton(id, label, getText){
+  setTimeout(() => {
+    const btn = $(id);
+    if (!btn) return;
+    btn.addEventListener('click', async e => {
+      try { await navigator.clipboard.writeText(getText()); e.target.textContent = 'Copied'; }
+      catch { e.target.textContent = 'Copy blocked'; }
+      setTimeout(() => { e.target.textContent = label; }, 1600);
+    });
+  }, 0);
+}
+
+function chips(names, cls, goto){
+  return `<div class="chips">${names.map(n =>
+    `<button class="chip ${cls || ''} link" data-goto="${goto}" data-name="${n}">${n}</button>`
+  ).join('')}</div>`;
+}
+
+/* ---------------- explorer factory ---------------- */
+function makeExplorer(rootId, cfg){
+  const root = $(rootId);
+  const els = {
+    q: root.querySelector('.q'),
+    sort: root.querySelector('.sort'),
+    hits: root.querySelector('.hits'),
+    list: root.querySelector('.list'),
+    dhead: root.querySelector('.dhead'),
+    body: {
+      structure: root.querySelector('[data-body="structure"]'),
+      source: root.querySelector('[data-body="source"]'),
+      json: root.querySelector('[data-body="json"]'),
+    },
+  };
+  const state = { current: cfg.initial, tab: 'structure', listed: false, header: false };
+  const byName = name => cfg.items.find(i => i.name === name);
+
+  function sortKey(){ return els.sort.value; }
+  function measure(item){ return cfg.metrics[sortKey()].get(item); }
+
+  function filtered(){
+    const q = els.q.value.trim().toLowerCase();
+    const out = cfg.items.filter(i => !q ||
+      cfg.search(i).some(v => (v || '').toLowerCase().includes(q)));
+    const m = cfg.metrics[sortKey()];
+    out.sort(m.alpha ? (a, b) => a.name.localeCompare(b.name)
+                     : (a, b) => measure(b) - measure(a) || a.name.localeCompare(b.name));
+    return out;
+  }
+
+  function renderList(){
+    const rows = filtered();
+    state.listed = true;
+    const m = cfg.metrics[sortKey()];
+    els.hits.textContent = `${rows.length} of ${cfg.items.length}`;
+    els.list.innerHTML = rows.map(i => `
+      <button class="row" role="option" data-name="${i.name}" aria-current="${i.name === state.current}">
+        <span class="rn">${i.name}</span>
+        <span class="rm">${measure(i).toLocaleString()} ${m.unit}</span>
+      </button>`).join('') ||
+      `<p class="empty" style="padding:10px">No ${cfg.noun} matches.</p>`;
+    if (rows.length && !rows.some(i => i.name === state.current)) select(rows[0].name);
+  }
+
+  function renderSource(item){
+    if (SOURCES === null) {
+      try { SOURCES = JSON.parse($('sources').textContent); } catch { SOURCES = {}; }
+    }
+    const file = cfg.file(item);
+    const src = SOURCES[file];
+    if (src === undefined) {
+      els.body.source.innerHTML = `<div style="padding:24px"><p class="empty">` +
+        `Source for ${esc(file)} was not bundled into this build.</p></div>`;
+      return;
+    }
+    const lines = src.split('\n');
+    const skip = firstCodeLine(lines);
+    const fold = !state.header && skip > 5;
+    const lead = fold
+      ? `<button class="l fold" data-fold="1"><span class="g">1</span>` +
+        `<span>// … ${skip}-line license header — show</span></button>` : '';
+    els.body.source.innerHTML = `
       <div class="srcbar">
-        <span>no published example</span>
+        <span>Sources/${M.module}/${esc(file)}</span>
+        <span>${lines.length.toLocaleString()} lines</span>
+        <span>read-only · © Apple Inc. · Apache-2.0</span>
         <span class="sp"></span>
+        ${skip > 5 ? `<button class="btn" data-fold="1">${state.header ? 'Hide header' : 'Show header'}</button>` : ''}
+        <button class="btn" id="${rootId}-copysrc">Copy file</button>
       </div>
-      <div style="padding:22px 24px; display:flex; flex-direction:column; gap:12px">
-        <p class="empty">${bundled
-          ? `The FHIR ${M.fhir_version.split('-')[0]} specification publishes no example instance for <b>${esc(r.name)}</b>.`
-          : `No example cache was bundled into this build — run <code>scripts/fetch_examples.py</code> and rebuild.`}</p>
-        <p class="note" style="font-size:.85rem">Minimal shape, from the Swift declaration:</p>
-        <pre class="sample">{
-  "resourceType": "${esc(r.name)}"
-}</pre>
-      </div>`;
-    return;
+      <div class="src">${numbered(lines, fold ? skip : 0, highlightSwift, lead)}</div>`;
+    copyButton(`${rootId}-copysrc`, 'Copy file', () => src);
   }
-  const text = JSON.stringify(ex.json, null, 2);
-  const lines = text.split('\n');
-  $('body-json').innerHTML = `
-    <div class="srcbar">
-      <span>${esc(ex.file)}</span>
-      <span>${lines.length.toLocaleString()} lines · ${(text.length / 1000).toFixed(1)} kB</span>
-      <span>1 of ${ex.of} published ${ex.of === 1 ? 'example' : 'examples'}</span>
-      <span class="sp"></span>
-      ${ex.url ? `<a class="btn" href="${esc(ex.url)}" target="_blank" rel="noopener">Open on hl7.org</a>` : ''}
-      <button class="btn" id="copyjson">Copy JSON</button>
-    </div>
-    <div class="src json">${lines.map((ln, i) =>
-      `<div class="l"><span class="g">${i + 1}</span><span>${highlightJSON(ln) || ' '}</span></div>`).join('')}</div>
-    <p class="srcnote">Published HL7 FHIR example, unmodified · <a href="https://hl7.org/fhir/R4/license.html"
-      target="_blank" rel="noopener">FHIR licence</a></p>`;
-  $('copyjson').addEventListener('click', async e => {
-    try { await navigator.clipboard.writeText(text); e.target.textContent = 'Copied'; }
-    catch { e.target.textContent = 'Copy blocked'; }
-    setTimeout(() => { e.target.textContent = 'Copy JSON'; }, 1600);
+
+  function renderJSON(item){
+    if (EXAMPLES === null) {
+      try { EXAMPLES = JSON.parse($('examples').textContent); }
+      catch { EXAMPLES = { examples: {}, fragments: {} }; }
+    }
+    const ex = cfg.example(item, EXAMPLES);
+    if (!ex) {
+      els.body.json.innerHTML = `
+        <div class="srcbar"><span>no example available</span><span class="sp"></span></div>
+        <div style="padding:22px 24px; display:flex; flex-direction:column; gap:12px">
+          <p class="empty">${cfg.noExample(item, EXAMPLES)}</p>
+          ${cfg.fallback ? cfg.fallback(item) : ''}
+        </div>`;
+      return;
+    }
+    const text = JSON.stringify(ex.json, null, 2);
+    const lines = text.split('\n');
+    els.body.json.innerHTML = `
+      <div class="srcbar">
+        <span>${esc(ex.file)}</span>
+        ${ex.path ? `<span>at <b>${esc(ex.path)}</b></span>` : ''}
+        <span>${lines.length.toLocaleString()} lines · ${(text.length / 1000).toFixed(1)} kB</span>
+        ${ex.note ? `<span>${esc(ex.note)}</span>` : ''}
+        <span class="sp"></span>
+        ${ex.url ? `<a class="btn" href="${esc(ex.url)}" target="_blank" rel="noopener">Open on hl7.org</a>` : ''}
+        <button class="btn" id="${rootId}-copyjson">Copy JSON</button>
+      </div>
+      <div class="src json">${numbered(lines, 0, highlightJSON)}</div>
+      <p class="srcnote">${esc(ex.caption)} · <a href="https://hl7.org/fhir/R4/license.html"
+        target="_blank" rel="noopener">FHIR licence</a></p>`;
+    copyButton(`${rootId}-copyjson`, 'Copy JSON', () => text);
+  }
+
+  const RENDER = { structure: null, source: renderSource, json: renderJSON };
+
+  function renderDetail(){
+    const item = byName(state.current);
+    if (!item) return;
+    els.dhead.innerHTML = cfg.head(item);
+    els.body.structure.innerHTML = cfg.structure(item);
+    // code panes are rebuilt on demand; drop the stale one when it is not showing
+    for (const key of ['source', 'json']) {
+      if (state.tab === key) RENDER[key](item); else els.body[key].innerHTML = '';
+    }
+  }
+
+  function showBody(name){
+    state.tab = name;
+    root.querySelectorAll('.subtab').forEach(b =>
+      b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+    for (const key of Object.keys(els.body)) els.body[key].hidden = key !== name;
+    if (RENDER[name]) RENDER[name](byName(state.current));
+  }
+
+  function select(name){
+    if (!byName(name)) return false;
+    state.current = name;
+    els.list.querySelectorAll('.row').forEach(b =>
+      b.setAttribute('aria-current', String(b.dataset.name === name)));
+    renderDetail();
+    const showing = els.body[state.tab];
+    if (showing) showing.scrollTop = 0;
+    return true;
+  }
+
+  els.list.addEventListener('click', e => {
+    const b = e.target.closest('.row');
+    if (b) select(b.dataset.name);
   });
+  root.querySelectorAll('.subtab').forEach(b =>
+    b.addEventListener('click', () => showBody(b.dataset.tab)));
+  els.q.addEventListener('input', renderList);
+  els.sort.addEventListener('change', renderList);
+  // header fold, from either the bar button or the folded line itself
+  els.body.source.addEventListener('click', e => {
+    if (e.target.closest('[data-fold]')) { state.header = !state.header; renderSource(byName(state.current)); }
+  });
+  // cross-links: a chip can jump to the other explorer
+  root.addEventListener('click', e => {
+    const chip = e.target.closest('.chip.link');
+    if (chip) goTo(chip.dataset.goto, chip.dataset.name);
+  });
+
+  return {
+    ensure(){ if (!state.listed) { renderList(); renderDetail(); } },
+    reveal(name){ this.ensure(); els.q.value = ''; renderList(); select(name); },
+  };
 }
 
-const DETAIL_TABS = { structure: null, source: renderSource, json: renderJSON };
+/* ---------------- resources ---------------- */
+const resourceExplorer = makeExplorer('ex-resources', {
+  items: DATA.resources,
+  noun: 'resource',
+  initial: DATA.resources.some(r => r.name === 'Patient') ? 'Patient' : DATA.resources[0].name,
+  metrics: {
+    name:  { get: r => r.lines, unit: 'ln', alpha: true },
+    lines: { get: r => r.lines, unit: 'ln' },
+    refs:  { get: r => r.refs.length, unit: 'ref' },
+    bb:    { get: r => r.bb.length, unit: 'nested' },
+    dt:    { get: r => r.dt.length, unit: 'types' },
+  },
+  search: r => [r.name, r.doc, ...r.dt, ...r.bb.map(b => b.n)],
+  file: r => r.file,
+  head: r => `
+    <h3>${r.name}</h3>
+    <p>${esc(r.doc || '')}</p>
+    <div class="chips">
+      <span class="pill ${r.kind === 'DomainResource' ? 'res' : ''}">${r.kind}</span>
+      <span class="pill">${r.file} · ${r.lines.toLocaleString()} lines</span>
+    </div>`,
+  structure(r){
+    const codeMap = new Map();
+    r.codes.forEach(c => codeMap.set(c.e, (codeMap.get(c.e) || 0) + 1));
+    return `
+      <div class="metrics">
+        <div><b>${r.props}</b><span>own properties</span></div>
+        <div><b>${r.bb.length}</b><span>nested structs</span></div>
+        <div><b>${r.refs.length}</b><span>references</span></div>
+        <div><b>${r.dt.length}</b><span>datatypes</span></div>
+        <div><b>${codeMap.size}</b><span>code enums</span></div>
+        <div><b>${r.ch.length}</b><span>choice slots</span></div>
+      </div>
 
-function showDetailTab(name){
-  detailTab = name;
-  for (const key of Object.keys(DETAIL_TABS)) {
-    $('s-' + key).setAttribute('aria-selected', String(key === name));
-    $('body-' + key).hidden = key !== name;
-  }
-  const render = DETAIL_TABS[name];
-  if (render) render(R.find(x => x.name === current));
-}
-Object.keys(DETAIL_TABS).forEach(key =>
-  $('s-' + key).addEventListener('click', () => showDetailTab(key)));
+      <div class="block">
+        <h4>Nests — private backbone structs</h4>
+        ${r.bb.length ? `<div class="chips">${r.bb.map(b =>
+          `<span class="chip b">${b.n} <span style="color:var(--muted)">${b.p}</span></span>`).join('')}</div>`
+          : '<p class="empty">Flat — no nested structs.</p>'}
+      </div>
 
-function select(name){
-  current = name;
-  $('list').querySelectorAll('.row').forEach(b =>
-    b.setAttribute('aria-current', String(b.dataset.name === name)));
-  renderDetail();
-  const showing = $('body-' + detailTab);
-  if (showing) showing.scrollTop = 0;
-}
-$('list').addEventListener('click', e => {
-  const b = e.target.closest('.row'); if (b) select(b.dataset.name);
+      <div class="block">
+        <h4>Points at — Reference properties</h4>
+        ${r.refs.length ? `<div class="reflist">${r.refs.map(f => `
+          <div>
+            ${f.o ? `<span class="own">${f.o}.</span>` : ''}
+            <span class="p">${f.n}${f.a ? '[]' : ''}</span>
+            <span class="arr">→ Reference</span>
+            <span class="doc">${esc(f.d)}</span>
+          </div>`).join('')}</div>`
+          : '<p class="empty">Holds no references.</p>'}
+      </div>
+
+      <div class="block">
+        <h4>Holds — shared datatypes</h4>
+        ${chips(r.dt, '', 'datatype')}
+      </div>
+
+      <div class="block">
+        <h4>Binds — terminology enums</h4>
+        ${codeMap.size ? `<div class="chips">${[...codeMap].map(([e, n]) =>
+          `<span class="chip t">${e}${n > 1 ? ` <span style="color:var(--muted)">×${n}</span>` : ''}</span>`).join('')}</div>`
+          : '<p class="empty">No required code bindings.</p>'}
+      </div>
+
+      ${r.ch.length ? `<div class="block">
+        <h4>Chooses — value[x] enums</h4>
+        <div class="chips">${r.ch.map(c =>
+          `<span class="chip">${c.o ? c.o + '.' : ''}${c.e} <span style="color:var(--muted)">${c.n} cases</span></span>`).join('')}</div>
+      </div>` : ''}`;
+  },
+  example(r, bundle){
+    const ex = (bundle.examples || {})[r.name];
+    if (!ex) return null;
+    return { file: ex.file, url: ex.url, json: ex.json,
+             note: `1 of ${ex.of} published ${ex.of === 1 ? 'example' : 'examples'}`,
+             caption: 'Published HL7 FHIR example, unmodified' };
+  },
+  noExample(r, bundle){
+    return Object.keys(bundle.examples || {}).length
+      ? `The FHIR ${M.fhir_version.split('-')[0]} specification publishes no example instance for <b>${esc(r.name)}</b>.`
+      : `No example cache was bundled into this build — run <code>scripts/fetch_examples.py</code> and rebuild.`;
+  },
+  fallback: r => `
+    <p class="note" style="font-size:.85rem">Minimal shape, from the Swift declaration:</p>
+    <pre class="sample">{
+  "resourceType": "${esc(r.name)}"
+}</pre>`,
 });
-$('q').addEventListener('input', renderList);
-$('sort').addEventListener('change', renderList);
+
+/* ---------------- datatypes ---------------- */
+const ROLE_LABEL = { 'domain-resource': 'resources', resource: 'resources',
+                     backbone: 'backbone structs', datatype: 'datatypes',
+                     proxy: 'ResourceProxy', primitive: 'primitives' };
+const HOLDER_CAP = 40;
+
+const datatypeExplorer = makeExplorer('ex-datatypes', {
+  items: DATA.datatypes,
+  noun: 'data type',
+  initial: 'Reference',
+  metrics: {
+    used:   { get: d => d.used, unit: 'held' },
+    name:   { get: d => d.nprops, unit: 'props', alpha: true },
+    nprops: { get: d => d.nprops, unit: 'props' },
+    lines:  { get: d => d.lines, unit: 'ln' },
+  },
+  search: d => [d.name, d.doc, ...d.holds, ...d.aliases],
+  file: d => d.file,
+  head: d => `
+    <h3>${d.name}</h3>
+    <p>${esc(d.doc || '')}</p>
+    <div class="chips">
+      <span class="pill ${d.kind === 'class' ? 'elem' : ''}">${d.kind} : ${d.base}</span>
+      <span class="pill">${d.file} · ${d.lines.toLocaleString()} lines</span>
+      ${d.shared_backbone ? '<span class="pill">shared backbone</span>' : ''}
+      ${d.aliases.length ? `<span class="pill">also ${d.aliases.join(' · ')}</span>` : ''}
+    </div>`,
+  structure(d){
+    // resources and the three that skip DomainResource are one audience, not two
+    const merged = new Map();
+    for (const key of ['resource', 'backbone', 'datatype', 'proxy', 'primitive']) {
+      const names = [...(d.holders[key] || []),
+                     ...(key === 'resource' ? (d.holders['domain-resource'] || []) : [])];
+      if (names.length) merged.set(key, names.sort());
+    }
+    const groups = [...merged];
+    return `
+      <div class="metrics">
+        <div><b>${d.nprops}</b><span>properties</span></div>
+        <div><b>${d.used.toLocaleString()}</b><span>types hold it</span></div>
+        <div><b>${d.holds.length}</b><span>datatypes held</span></div>
+        <div><b>${d.choices.length}</b><span>choice slots</span></div>
+        <div><b>${d.lines.toLocaleString()}</b><span>lines</span></div>
+      </div>
+
+      <div class="block">
+        <h4>Properties</h4>
+        ${d.props.length ? `<div class="reflist">${d.props.map(p => `
+          <div>
+            <span class="p">${p.n}</span>
+            <span class="own">${esc(p.t)}</span>
+            <span class="doc">${esc(p.d)}</span>
+          </div>`).join('')}</div>`
+          : '<p class="empty">No documented properties.</p>'}
+      </div>
+
+      <div class="block">
+        <h4>Holds — other datatypes</h4>
+        ${d.holds.length ? chips(d.holds, '', 'datatype')
+                         : '<p class="empty">Holds no other datatype.</p>'}
+      </div>
+
+      <div class="block">
+        <h4>Held by — the reverse index</h4>
+        ${groups.length ? groups.map(([role, names]) => `
+          <div class="holders">
+            <span class="rolelabel">${names.length.toLocaleString()} ${ROLE_LABEL[role] || role}</span>
+            ${chips(names.slice(0, HOLDER_CAP), role === 'backbone' ? 'b' : '',
+                    (role === 'domain-resource' || role === 'resource') ? 'resource' : 'datatype')}
+            ${names.length > HOLDER_CAP
+              ? `<p class="empty">+ ${(names.length - HOLDER_CAP).toLocaleString()} more</p>` : ''}
+          </div>`).join('')
+          : '<p class="empty">Nothing holds this type.</p>'}
+      </div>
+
+      ${d.choices.length ? `<div class="block">
+        <h4>Chooses — value[x] enums</h4>
+        <div class="chips">${d.choices.map(c =>
+          `<span class="chip">${c.e} <span style="color:var(--muted)">${c.n} cases · ${c.indirect} indirect</span></span>`).join('')}</div>
+      </div>` : ''}`;
+  },
+  example(d, bundle){
+    const f = (bundle.fragments || {})[d.name];
+    if (!f) return null;
+    return { file: f.from, url: f.url, json: f.json, path: f.path,
+             caption: 'Fragment of a published HL7 FHIR example, unmodified' };
+  },
+  noExample(d, bundle){
+    return Object.keys(bundle.fragments || {}).length
+      ? `No published R4 example carries a <b>${esc(d.name)}</b> in a position that can be identified ` +
+        `unambiguously, so there is no honest fragment to show.`
+      : `No example cache was bundled into this build — run <code>scripts/fetch_examples.py</code> and rebuild.`;
+  },
+  fallback: d => `
+    <p class="note" style="font-size:.85rem">Its properties, from the Swift declaration:</p>
+    <pre class="sample">{
+${d.props.filter(p => p.n !== 'extension' && p.n !== 'id')
+         .map(p => `  "${p.n}": <span class="c">// ${esc(p.t)}</span>`).join('\n')}
+}</pre>`,
+});
+
+/* ---------------- cross-links between the two explorers ---------------- */
+function goTo(kind, name){
+  if (kind === 'datatype') {
+    if (DATA.datatypes.some(d => d.name === name)) {
+      showTab('datatypes'); datatypeExplorer.reveal(name); return;
+    }
+    kind = 'resource';                        // e.g. a backbone chip: fall through
+  }
+  if (DATA.resources.some(r => r.name === name)) {
+    showTab('explorer'); resourceExplorer.reveal(name);
+  }
+}
 
 applyRelease(verSel.value);
 showTab('overview');
+
 </script>
