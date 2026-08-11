@@ -323,19 +323,19 @@ footer b{color:var(--ink-2)}
 
 <header class="hero">
   <div class="eyebrow" id="hero-eyebrow"></div>
-  <h1>679 types, three kinds of relationship</h1>
+  <h1><span data-stat="types"></span> types, three kinds of relationship</h1>
   <p class="deck">Apple's <b>FHIRModels</b> generates every type in
-  <code>Sources/ModelsR4</code> from the FHIR StructureDefinitions, and the generator only ever
-  expresses three relations in Swift: <b>protocol conformance</b>, <b>containment</b> by
+  <code data-stat="modulePath"></code> from the FHIR StructureDefinitions, and the generator only
+  ever expresses three relations in Swift: <b>protocol conformance</b>, <b>containment</b> by
   property, and one deliberately <b>type-erased pointer</b>. Learn those three and the other
-  126,000 lines are repetition.</p>
+  <span data-stat="linesRounded"></span> lines are repetition.</p>
   <div class="stats">
-    <div class="stat res"><b>146</b><span>resource structs</span></div>
-    <div class="stat elem"><b>467</b><span>backbone structs</span></div>
-    <div class="stat elem"><b>41</b><span>shared datatypes</span></div>
-    <div class="stat term"><b>445</b><span>terminology enums</span></div>
-    <div class="stat"><b>186</b><span>choice enums</span></div>
-    <div class="stat"><b>4,675</b><span>type→type edges</span></div>
+    <div class="stat res"><b data-stat="resources"></b><span>resource structs</span></div>
+    <div class="stat elem"><b data-stat="backbones"></b><span>backbone structs</span></div>
+    <div class="stat elem"><b data-stat="datatypes"></b><span>datatypes</span></div>
+    <div class="stat term"><b data-stat="terminology"></b><span>terminology enums</span></div>
+    <div class="stat"><b data-stat="choiceEnums"></b><span>choice enums</span></div>
+    <div class="stat"><b data-stat="edges"></b><span>type→type edges</span></div>
   </div>
 </header>
 
@@ -363,8 +363,9 @@ footer b{color:var(--ink-2)}
     <div class="eyebrow">Relation 1 — conformance</div>
     <h2>Two protocol lines, no class hierarchy</h2>
   </div>
-  <p class="note">FHIR's spec has a base-class hierarchy; this port doesn't. There are seven
-  protocols and 667 structs that conform to them — no subclassing anywhere. Which line a type
+  <p class="note">FHIR's spec has a base-class hierarchy; this port doesn't. There are
+  <span data-stat="protocols"></span> protocols and <span data-stat="structs"></span> structs that
+  conform to them — no subclassing anywhere. Which line a type
   sits on tells you what it is: something the server can address by URL, or something that only
   exists inside a parent.</p>
 
@@ -393,13 +394,13 @@ footer b{color:var(--ink-2)}
 
       <path class="wire" d="M550 72 H586" marker-end="url(#a)"/>
       <rect class="box-res" x="586" y="50" width="290" height="44" rx="7"/>
-      <text class="svg-label" x="731" y="70" text-anchor="middle">143 resource structs</text>
+      <text class="svg-label" x="731" y="70" text-anchor="middle" data-stat="domainResourcesLabel"></text>
       <text class="svg-sub" x="731" y="85" text-anchor="middle">Patient · Observation · Appointment · …</text>
 
       <path class="wire" d="M281 94 V128 H586" marker-end="url(#a)"/>
-      <text class="svg-edge" x="300" y="122">3 skip DomainResource</text>
+      <text class="svg-edge" x="300" y="122" data-stat="resourceLineSkip"></text>
       <rect class="box-res" x="586" y="106" width="290" height="40" rx="7"/>
-      <text class="svg-label" x="731" y="131" text-anchor="middle">Binary · Bundle · Parameters</text>
+      <text class="svg-label" x="731" y="131" text-anchor="middle" data-stat="resourceLineNames"></text>
 
       <path class="wire" d="M150 198 H180 V228 H206" marker-end="url(#a)"/>
       <rect class="box-elem" x="206" y="206" width="150" height="44" rx="7" fill-opacity="1"/>
@@ -413,7 +414,7 @@ footer b{color:var(--ink-2)}
 
       <path class="wire" d="M550 228 H586" marker-end="url(#a)"/>
       <rect class="box-elem" x="586" y="206" width="290" height="40" rx="7"/>
-      <text class="svg-label" x="731" y="231" text-anchor="middle">39 datatype structs</text>
+      <text class="svg-label" x="731" y="231" text-anchor="middle" data-stat="datatypeStructsLabel"></text>
 
       <path class="wire" d="M468 250 V282 H486" marker-end="url(#a)"/>
       <rect class="box-elem" x="486" y="260" width="170" height="44" rx="7" fill-opacity="1"/>
@@ -422,13 +423,13 @@ footer b{color:var(--ink-2)}
 
       <path class="wire" d="M656 282 H680" marker-end="url(#a)"/>
       <rect class="box-elem" x="680" y="260" width="196" height="44" rx="7"/>
-      <text class="svg-label" x="778" y="280" text-anchor="middle">467 backbone structs</text>
-      <text class="svg-sub" x="778" y="295" text-anchor="middle">459 serve one owner only</text>
+      <text class="svg-label" x="778" y="280" text-anchor="middle" data-stat="backbonesLabel"></text>
+      <text class="svg-sub" x="778" y="295" text-anchor="middle" data-stat="backbonesOwnedLabel"></text>
 
       <path class="wire-hot" d="M281 250 V336 H584" marker-end="url(#a)"/>
-      <text class="svg-edge" x="300" y="330" fill="var(--elem)">only 2 stop here</text>
+      <text class="svg-edge" x="300" y="330" fill="var(--elem)" data-stat="classesStop"></text>
       <rect class="box-elem" x="584" y="314" width="292" height="42" rx="7"/>
-      <text class="svg-label" x="730" y="333" text-anchor="middle">final class Reference · Identifier</text>
+      <text class="svg-label" x="730" y="333" text-anchor="middle" data-stat="classNames"></text>
       <text class="svg-sub" x="730" y="348" text-anchor="middle">classes, not structs — they recurse into each other</text>
     </svg>
     </div>
@@ -446,12 +447,11 @@ footer b{color:var(--ink-2)}
     <div class="eyebrow">Relation 2 — containment</div>
     <h2>A resource is one struct plus its private nest</h2>
   </div>
-  <p class="note">Of 467 backbone structs, 459 are declared in the same file as exactly one
-  resource and are used by nothing else — <code>PatientContact</code> belongs to
-  <code>Patient</code> and cannot appear anywhere else. Only eight
-  (<code>Dosage</code>, <code>Timing</code>, <code>ElementDefinition</code>,
-  <code>Population</code>, <code>ProdCharacteristic</code>, <code>ProductShelfLife</code>,
-  <code>MarketingStatus</code>, <code>SubstanceAmount</code>) are shared across resources.</p>
+  <p class="note">Of <span data-stat="backbones"></span> backbone structs,
+  <span data-stat="backbonesOwned"></span> are declared in the same file as exactly one resource
+  and are used by nothing else — <code>PatientContact</code> belongs to <code>Patient</code> and
+  cannot appear anywhere else. Only <span data-stat="sharedBackbones"></span>
+  (<span class="mono" data-stat="sharedBackboneNames"></span>) are shared across resources.</p>
 
   <figure>
     <div class="figscroll">
@@ -462,52 +462,53 @@ footer b{color:var(--ink-2)}
         </marker>
       </defs>
       <rect class="box-res" x="24" y="30" width="250" height="58" rx="8" fill-opacity="1"/>
-      <text class="svg-label" x="40" y="54">struct Patient</text>
-      <text class="svg-sub" x="40" y="71">: DomainResource · 24 properties · 582 lines</text>
+      <text class="svg-label" x="40" y="54" data-stat="exStruct"></text>
+      <text class="svg-sub" x="40" y="71" data-stat="exSub"></text>
 
       <path class="wire" d="M60 88 V128" marker-end="url(#b)"/>
       <text class="svg-edge" x="70" y="114">nests</text>
       <rect class="box" x="24" y="128" width="250" height="180" rx="8" stroke-dasharray="4 3"/>
       <text class="svg-sub" x="40" y="150">resource-private structs</text>
       <rect class="box-elem" x="40" y="160" width="218" height="36" rx="6"/>
-      <text class="svg-label" x="52" y="183">PatientCommunication</text>
-      <text class="svg-sub" x="246" y="183" text-anchor="end">5</text>
+      <text class="svg-label" x="52" y="183" data-stat="exBB0"></text>
+      <text class="svg-sub" x="246" y="183" text-anchor="end" data-stat="exBB0n"></text>
       <rect class="box-elem" x="40" y="204" width="218" height="36" rx="6"/>
-      <text class="svg-label" x="52" y="227">PatientContact</text>
-      <text class="svg-sub" x="246" y="227" text-anchor="end">10</text>
+      <text class="svg-label" x="52" y="227" data-stat="exBB1"></text>
+      <text class="svg-sub" x="246" y="227" text-anchor="end" data-stat="exBB1n"></text>
       <rect class="box-elem" x="40" y="248" width="218" height="36" rx="6"/>
-      <text class="svg-label" x="52" y="271">PatientLink</text>
-      <text class="svg-sub" x="246" y="271" text-anchor="end">5</text>
+      <text class="svg-label" x="52" y="271" data-stat="exBB2"></text>
+      <text class="svg-sub" x="246" y="271" text-anchor="end" data-stat="exBB2n"></text>
       <text class="svg-sub" x="52" y="299">properties each →</text>
 
       <path class="wire" d="M274 59 H330 V44 H392" marker-end="url(#b)"/>
       <text class="svg-edge" x="336" y="38">holds</text>
       <rect class="box-elem" x="392" y="26" width="484" height="42" rx="7"/>
-      <text class="svg-label" x="408" y="45">11 shared datatypes</text>
-      <text class="svg-sub" x="408" y="60">HumanName · Address · ContactPoint · Identifier · CodeableConcept · Period · …</text>
+      <text class="svg-label" x="408" y="45" data-stat="exDT"></text>
+      <text class="svg-sub" x="408" y="60" data-stat="exDTNames"></text>
 
       <path class="wire" d="M330 59 V118 H392" marker-end="url(#b)"/>
       <text class="svg-edge" x="336" y="112">binds</text>
       <rect class="box-term" x="392" y="98" width="484" height="42" rx="7"/>
-      <text class="svg-label" x="408" y="117">3 terminology bindings</text>
-      <text class="svg-sub" x="408" y="132">gender → AdministrativeGender ×2 · link.type → LinkType</text>
+      <text class="svg-label" x="408" y="117" data-stat="exCodes"></text>
+      <text class="svg-sub" x="408" y="132" data-stat="exCodeNames"></text>
 
       <path class="wire" d="M330 59 V192 H392" marker-end="url(#b)"/>
       <text class="svg-edge" x="336" y="186">points at</text>
       <rect class="box" x="392" y="172" width="484" height="42" rx="7"/>
-      <text class="svg-label" x="408" y="191">4 Reference properties</text>
-      <text class="svg-sub" x="408" y="206">generalPractitioner[] · managingOrganization · contact.organization · link.other</text>
+      <text class="svg-label" x="408" y="191" data-stat="exRefs"></text>
+      <text class="svg-sub" x="408" y="206" data-stat="exRefNames"></text>
 
       <path class="wire" d="M330 59 V266 H392" marker-end="url(#b)"/>
       <text class="svg-edge" x="336" y="260">chooses</text>
       <rect class="box" x="392" y="246" width="484" height="42" rx="7"/>
-      <text class="svg-label" x="408" y="265">2 choice enums</text>
-      <text class="svg-sub" x="408" y="280">DeceasedX (bool | dateTime) · MultipleBirthX (bool | integer)</text>
+      <text class="svg-label" x="408" y="265" data-stat="exChoices"></text>
+      <text class="svg-sub" x="408" y="280" data-stat="exChoiceNames"></text>
     </svg>
     </div>
     <figcaption><b>Patient is the template every resource follows.</b> The nest is private, so
     there is no shortcut: to build a <code>Patient.contact</code> you construct a
-    <code>PatientContact</code>, and the same shape repeats 146 times with different names. The
+    <code>PatientContact</code>, and the same shape repeats <span data-stat="resources"></span>
+    times with different names. The
     <b>Resource explorer</b> tab renders this breakdown, plus the Swift source, for any
     resource.</figcaption>
   </figure>
@@ -517,11 +518,13 @@ footer b{color:var(--ink-2)}
 <section>
   <div class="head">
     <div class="eyebrow">Relation 2, continued — the shared core</div>
-    <h2>Forty-one datatypes carry the whole module</h2>
+    <h2><span data-stat="datatypes"></span> datatypes carry the whole module</h2>
   </div>
-  <p class="note">The resources are wide but shallow; the reuse lives here. Two of these
-  datatypes point at each other, and because a Swift struct cannot contain itself, that single
-  cycle is why <code>Reference</code> and <code>Identifier</code> are the module's only classes.</p>
+  <p class="note">The resources are wide but shallow; the reuse lives here —
+  <span data-stat="datatypesElement"></span> types on the <code>Element</code> line plus
+  <span data-stat="sharedBackbones"></span> shared backbone types. Two of them point at each
+  other, and because a Swift struct cannot contain itself, that single cycle is why
+  <code>Reference</code> and <code>Identifier</code> are the module's only classes.</p>
 
   <figure>
     <div class="figscroll">
@@ -554,7 +557,7 @@ footer b{color:var(--ink-2)}
       <text class="svg-label" x="427" y="232" text-anchor="middle">Period</text>
       <rect class="box-elem" x="352" y="346" width="150" height="34" rx="6"/>
       <text class="svg-label" x="427" y="368" text-anchor="middle">Quantity</text>
-      <text class="svg-sub" x="427" y="392" text-anchor="middle">= Age = Count = Distance = Duration</text>
+      <text class="svg-sub" x="427" y="392" text-anchor="middle" data-stat="quantityAliases"></text>
 
       <path class="wire" d="M200 50 H276 V88 H348" marker-end="url(#c)"/>
       <path class="wire" d="M200 90 H348" marker-end="url(#c)"/>
@@ -579,7 +582,7 @@ footer b{color:var(--ink-2)}
 
       <path class="wire" d="M640 152 H570 V226 H506" marker-end="url(#c)"/>
       <text class="svg-edge" x="566" y="144" text-anchor="end">Identifier has a period · type</text>
-      <text class="svg-sub" x="750" y="320" text-anchor="middle">held by 158 and 290 types</text>
+      <text class="svg-sub" x="750" y="320" text-anchor="middle" data-stat="pairUsage"></text>
     </svg>
     </div>
     <figcaption>All arrows read "has a property of type". <b>Three fan-ins and one cycle</b> is the
@@ -594,7 +597,7 @@ footer b{color:var(--ink-2)}
   <div class="tight">
     <h3>How often each datatype is reached</h3>
     <p class="note">Number of declared types that hold a property (or choice case) of that type,
-    out of 679. <code>Extension</code> is on almost everything because every
+    out of <span data-stat="types"></span>. <code>Extension</code> is on almost everything because every
     <code>Element</code> carries an extension array — it is plumbing, not modelling.</p>
     <figure>
       <div class="bars" id="bars"></div>
@@ -611,7 +614,8 @@ footer b{color:var(--ink-2)}
     <div class="eyebrow">Relation 3 — the type-erased pointer</div>
     <h2><code>Reference</code> does not say what it points to</h2>
   </div>
-  <p class="note">658 properties across the module are references, and not one of them is
+  <p class="note"><span data-stat="refProps"></span> properties across the module are references,
+  and not one of them is
   parameterised by target. The Swift type is the same six fields whether it points at a
   <code>Practitioner</code> or at nothing that exists. The permitted targets live in the FHIR
   spec and, partially, in the generated doc comment above each property — never in the type
@@ -627,7 +631,7 @@ footer b{color:var(--ink-2)}
       </defs>
       <rect class="box-elem" x="24" y="26" width="330" height="216" rx="8"/>
       <text class="svg-label" x="40" y="50">final class Reference</text>
-      <text class="svg-sub" x="40" y="66">ElementReadOnly · 6 stored properties</text>
+      <text class="svg-sub" x="40" y="66" data-stat="refFields"></text>
       <line x1="24" y1="80" x2="354" y2="80" stroke="var(--line-2)"/>
       <text class="svg-label" x="40" y="102">reference</text><text class="svg-sub" x="338" y="102" text-anchor="end">FHIRPrimitive&lt;FHIRString&gt;?</text>
       <text class="svg-label" x="40" y="128">type</text><text class="svg-sub" x="338" y="128" text-anchor="end">FHIRPrimitive&lt;FHIRURI&gt;?</text>
@@ -661,14 +665,15 @@ patient.managingOrganization = Reference(reference: <span class="bad">"Banana/42
       <h3>Reference vs. contained vs. proxy</h3>
       <p>Three different ways one resource holds another. A <code>Reference</code> is a string
       pointer. <code>DomainResource.contained</code> and <code>Bundle.entry.resource</code> hold
-      the real thing, wrapped in <code>ResourceProxy</code> — a 147-case enum with one case per
-      resource type plus <code>unrecognized</code>, and the only place a resource literally
+      the real thing, wrapped in <code>ResourceProxy</code> — a
+      <span data-stat="proxyCases"></span>-case enum with one case per resource type plus
+      <code>unrecognized</code>, and the only place a resource literally
       nests inside another.</p>
     </div>
     <div class="card">
       <h3>Where the targets actually are</h3>
       <p>The doc comment names a target often enough to be tempting and not often enough to
-      trust — of 658 reference properties, most read like <code>"Who and/or what this is
+      trust — of <span data-stat="refProps"></span> reference properties, most read like <code>"Who and/or what this is
       about"</code>. Treat the spec, or your own mapper, as the source of truth.</p>
     </div>
   </div>
@@ -678,20 +683,15 @@ patient.managingOrganization = Reference(reference: <span class="bad">"Banana/42
 <section>
   <div class="head">
     <div class="eyebrow">The fourth thing, if you count it</div>
-    <h2>186 nested enums stand in for <code>value[x]</code></h2>
+    <h2><span data-stat="choiceEnums"></span> nested enums stand in for <code>value[x]</code></h2>
   </div>
   <p class="note">Where FHIR allows one field to hold any of several datatypes, the generator
-  emits a nested enum — <code>Observation.ValueX</code>, <code>Patient.DeceasedX</code>. Nine of
-  them are 50 cases wide, and in those, the 31 complex payloads are marked
+  emits a nested enum — <code>Observation.ValueX</code>, <code>Patient.DeceasedX</code>.
+  <span data-stat="choiceMaxCount"></span> of them are <span data-stat="choiceMax"></span> cases
+  wide, and in those, the <span data-stat="choiceMaxIndirect"></span> complex payloads are marked
   <code>indirect</code> to keep the enum's inline size small.</p>
 
-  <pre class="sample">public enum ValueX: Equatable, Hashable, Sendable {   <span class="c">// Extension.value[x] — 50 cases</span>
-    <span class="k">indirect case</span> address(Address)              <span class="c">// boxed: complex payload</span>
-    <span class="k">indirect case</span> age(Age)                      <span class="c">// = Quantity</span>
-    <span class="k">case</span> base64Binary(FHIRPrimitive&lt;Base64Binary&gt;)  <span class="c">// inline: primitive</span>
-    …
-    <span class="k">indirect case</span> usageContext(UsageContext)
-}</pre>
+  <pre class="sample" id="valuex-sample"></pre>
 
   <div class="tablewrap">
     <table>
@@ -760,7 +760,7 @@ patient.managingOrganization = Reference(reference: <span class="bad">"Banana/42
 <div class="wrap wide" id="p-datatypes" role="tabpanel" aria-labelledby="t-datatypes" hidden>
   <section style="padding-top:40px">
     <div class="head" style="border-top:0; padding-top:0">
-      <div class="eyebrow">The 41 datatypes and 8 shared backbones every resource builds from</div>
+      <div class="eyebrow" data-stat="datatypeEyebrow"></div>
       <h2>Data type explorer</h2>
     </div>
     <p class="note">These are the pieces you actually construct when mapping into FHIR. For each
@@ -799,51 +799,148 @@ patient.managingOrganization = Reference(reference: <span class="bad">"Banana/42
 
 <div id="tip" role="status" aria-live="polite"></div>
 
-<script id="payload" type="application/json">/*__DATA__*/</script>
-<script id="sources" type="application/json">/*__SOURCES__*/</script>
-<script id="examples" type="application/json">/*__EXAMPLES__*/</script>
+<!--__BUNDLES__-->
 <script>
-const DATA = JSON.parse(document.getElementById('payload').textContent);
-let SOURCES = null;                       // parsed on first use — it is a few MB
-let EXAMPLES = null;                      // ditto, on first visit to the JSON tab
 const RELEASES = /*__RELEASES__*/;
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
-/* ---------------- provenance & masthead ---------------- */
-const M = DATA.meta, C = DATA.counts;
-$('brandsub').textContent = `${M.module} · FHIR ${M.fhir_version}`;
-$('hero-eyebrow').textContent =
-  `Apple FHIRModels · Sources/${M.module} · FHIR ${M.fhir_version}`;
-$('prov-module').textContent = `Sources/${M.module}`;
-$('prov-fhir').textContent = M.fhir_version;
-$('prov-commit').textContent = M.models_commit || 'unknown';
-$('prov-files').textContent =
-  `${C.files_total} files · ${C.lines_total.toLocaleString()} lines`;
+/* Each embedded release ships three JSON bundles. Only the structure payload is
+   parsed when a release is selected; the multi-MB sources and examples wait
+   until a viewer actually asks for them. */
+const parsedBundles = {};
+function bundleFor(kind, slug){
+  const id = `${kind}-${slug}`;
+  if (!(id in parsedBundles)) {
+    const node = $(id);
+    try { parsedBundles[id] = node ? JSON.parse(node.textContent) : null; }
+    catch (err) { parsedBundles[id] = null; }
+  }
+  return parsedBundles[id];
+}
+
+const EMBEDDED = RELEASES.filter(r => r.embedded);
+let SLUG = null, DATA = null, M = null, C = null;
+
+/* ---------------- release-aware numbers ---------------- */
+const fmt = n => (typeof n === 'number' ? n.toLocaleString() : n);
+const listOf = (names, cap) => names.length > cap
+  ? names.slice(0, cap).join(' · ') + ' · …' : names.join(' · ');
+
+function pickExample(){
+  // The anatomy figure needs a resource with exactly three nested structs; Patient
+  // has had three in every release so far, so prefer it and fall back sensibly.
+  return DATA.resources.find(r => r.name === 'Patient' && r.bb.length === 3)
+      || DATA.resources.find(r => r.bb.length === 3)
+      || DATA.resources[0];
+}
+
+function stats(){
+  const roles = DATA.roles, ex = pickExample();
+  const quantity = DATA.datatypes.find(d => d.name === 'Quantity');
+  const codeNames = [...new Set(ex.codes.map(c => c.e))];
+  const s = {
+    types: fmt(C.types_declared),
+    structs: fmt(C.structs),
+    protocols: fmt(C.protocols),
+    resources: fmt(DATA.resources.length),
+    backbones: fmt(roles.backbone || 0),
+    backbonesOwned: fmt((roles.backbone || 0) - C.shared_backbones),
+    sharedBackbones: fmt(C.shared_backbones),
+    sharedBackboneNames: DATA.shared_backbones.join(' · ') || 'none',
+    datatypes: fmt(DATA.datatypes.length),
+    datatypesElement: fmt(roles.datatype || 0),
+    terminology: fmt(C.code_enums),
+    choiceEnums: fmt(C.choice_enums),
+    edges: fmt(C.edges),
+    refProps: fmt(C.ref_properties),
+    proxyCases: fmt(C.resource_proxy_cases),
+    choiceMax: fmt(C.choice_max),
+    choiceMaxCount: fmt(C.choice_max_count),
+    choiceMaxIndirect: fmt(C.choice_max_indirect),
+    modulePath: `Sources/${M.module}`,
+    linesRounded: `${Math.round(C.lines_total / 1000)},000`,
+    // figure 1
+    domainResourcesLabel: `${fmt(roles['domain-resource'] || 0)} resource structs`,
+    resourceLineNames: DATA.resources.filter(r => r.kind === 'Resource').map(r => r.name).join(' · '),
+    resourceLineSkip: `${roles.resource || 0} skip DomainResource`,
+    datatypeStructsLabel: `${fmt((roles.datatype || 0) - C.classes)} datatype structs`,
+    backbonesLabel: `${fmt(roles.backbone || 0)} backbone structs`,
+    backbonesOwnedLabel: `${fmt((roles.backbone || 0) - C.shared_backbones)} serve one owner only`,
+    classesStop: `only ${C.classes} stop here`,
+    classNames: `final class ${DATA.classes.join(' · ')}`,
+    // figure 2 — the anatomy of one resource
+    exStruct: `struct ${ex.name}`,
+    exSub: `: ${ex.kind} · ${ex.props} properties · ${fmt(ex.lines)} lines`,
+    exDT: `${ex.dt.length} shared datatypes`,
+    exDTNames: listOf(ex.dt, 7),
+    exCodes: `${codeNames.length} terminology binding${codeNames.length === 1 ? '' : 's'}`,
+    exCodeNames: listOf(ex.codes.map(c => `${c.o ? c.o.replace(ex.name, '') + '.' : ''}${c.n} → ${c.e}`), 3),
+    exRefs: `${ex.refs.length} Reference propert${ex.refs.length === 1 ? 'y' : 'ies'}`,
+    exRefNames: listOf(ex.refs.map(f => `${f.o ? f.o.replace(ex.name, '') + '.' : ''}${f.n}${f.a ? '[]' : ''}`), 4),
+    exChoices: `${ex.ch.length} choice enum${ex.ch.length === 1 ? '' : 's'}`,
+    exChoiceNames: listOf(ex.ch.map(c => `${c.e} (${c.n} types)`), 3),
+    // figure 3 — the datatype core
+    quantityAliases: quantity && quantity.aliases.length
+      ? '= ' + quantity.aliases.join(' = ') : 'shared by every measured value',
+    pairUsage: 'held by ' + DATA.classes
+      .map(n => fmt((DATA.datatypes.find(d => d.name === n) || {}).used || 0)).join(' and ') + ' types',
+    // figure 4
+    refFields: `ElementReadOnly · ${(DATA.datatypes.find(d => d.name === 'Reference') || {}).nprops || 0} stored properties`,
+    datatypeEyebrow: `The ${DATA.datatypes.length} datatypes every resource builds from`,
+  };
+  for (let i = 0; i < 3; i++) {
+    s[`exBB${i}`] = (ex.bb[i] || {}).n || '';
+    s[`exBB${i}n`] = (ex.bb[i] || {}).p ?? '';
+  }
+  return s;
+}
+
+function applyStats(){
+  const s = stats();
+  document.querySelectorAll('[data-stat]').forEach(node => {
+    const key = node.dataset.stat;
+    if (key in s) node.textContent = s[key];
+  });
+  $('brandsub').textContent = `${M.module} · FHIR ${M.fhir_version}`;
+  $('hero-eyebrow').textContent =
+    `Apple FHIRModels · Sources/${M.module} · FHIR ${M.fhir_version}`;
+  $('prov-module').textContent = `Sources/${M.module}`;
+  $('prov-fhir').textContent = M.fhir_version;
+  $('prov-commit').textContent = M.models_commit || 'unknown';
+  $('prov-files').textContent =
+    `${C.files_total} files · ${C.lines_total.toLocaleString()} lines`;
+}
 
 /* ---------------- release picker ---------------- */
 const verSel = $('ver');
 verSel.innerHTML = RELEASES.map(r =>
-  `<option value="${r.id}"${r.id === M.module ? ' selected' : ''}>${r.label}${r.available ? '' : ' — soon'}</option>`).join('');
+  `<option value="${r.slug}">${r.label}${r.embedded ? '' : ' — soon'}</option>`).join('');
 
-function applyRelease(id){
-  const r = RELEASES.find(x => x.id === id);
-  const ok = !!(r && r.available);
-  $('p-soon').hidden = ok;
-  ['t-overview','t-explorer','t-datatypes'].forEach(t => { $(t).disabled = !ok; });
-  if (ok) { showTab(activeTab); }
-  else {
-    ['p-overview','p-explorer','p-datatypes'].forEach(p => { $(p).hidden = true; });
-    $('soon-title').textContent = `${r.label} is not built yet`;
-    $('soon-body').textContent =
-      `FHIRExplorer ships with one release parsed: ${M.fhir_version} from Sources/${M.module}. ` +
-      `${r.label} exists upstream as Sources/${r.id}, but it has not been parsed into this page.`;
-    $('soon-cmd').textContent =
-      `python3 scripts/parse_models.py --models-dir ../FHIRModels/Sources/${r.id} ` +
-      `--out data/${r.id.replace('Models','').toLowerCase()}.json ` +
-      `--sources-out data/${r.id.replace('Models','').toLowerCase()}.sources.json`;
+function applyRelease(slug){
+  const r = RELEASES.find(x => x.slug === slug);
+  if (r && r.embedded) {
+    $('p-soon').hidden = true;
+    ['t-overview','t-explorer','t-datatypes'].forEach(t => { $(t).disabled = false; });
+    SLUG = slug;
+    DATA = bundleFor('payload', slug);
+    M = DATA.meta; C = DATA.counts;
+    applyStats(); renderBars(); renderChoiceTable(); renderValueXSample();
+    resourceExplorer.rebuild(); datatypeExplorer.rebuild();
+    showTab(activeTab);
+    return;
   }
+  ['p-overview','p-explorer','p-datatypes'].forEach(p => { $(p).hidden = true; });
+  ['t-overview','t-explorer','t-datatypes'].forEach(t => { $(t).disabled = true; });
+  $('p-soon').hidden = false;
+  $('soon-title').textContent = `${r.label} is not built yet`;
+  $('soon-body').textContent =
+    `FHIRExplorer has ${EMBEDDED.map(e => e.label).join(' and ')} parsed into this page. ` +
+    `${r.label} exists upstream as Sources/${r.id}, but has not been built.`;
+  $('soon-cmd').textContent =
+    `python3 scripts/parse_models.py --models-dir ../FHIRModels/Sources/${r.id} ` +
+    `--out data/${r.slug}.json --sources-out data/${r.slug}.sources.json`;
 }
 verSel.addEventListener('change', () => applyRelease(verSel.value));
 
@@ -873,15 +970,17 @@ function showTip(e, html){
 }
 const hideTip = () => { tip.style.opacity = 0; };
 
-/* ---------------- overview: bars + choice table ---------------- */
-const topDT = DATA.datatypes.filter(d => d.used > 0).slice(0, 18);
-const maxDT = topDT[0].used;
-$('bars').innerHTML = topDT.map(d => `
-  <div class="bar" data-n="${d.name}" data-u="${d.used}" data-b="${d.base}" data-k="${d.kind}">
-    <span class="nm">${d.name}</span>
-    <span class="track"><span class="fill" style="width:${(d.used / maxDT * 100).toFixed(1)}%"></span></span>
-    <span class="val">${d.used.toLocaleString()}</span>
-  </div>`).join('');
+/* ---------------- overview: bars, choice table, value[x] sample ---------------- */
+function renderBars(){
+  const top = DATA.datatypes.filter(d => d.used > 0).slice(0, 18);
+  const max = top.length ? top[0].used : 1;
+  $('bars').innerHTML = top.map(d => `
+    <div class="bar" data-n="${d.name}" data-u="${d.used}" data-b="${d.base}" data-k="${d.kind}">
+      <span class="nm">${d.name}</span>
+      <span class="track"><span class="fill" style="width:${(d.used / max * 100).toFixed(1)}%"></span></span>
+      <span class="val">${d.used.toLocaleString()}</span>
+    </div>`).join('');
+}
 $('bars').addEventListener('mousemove', e => {
   const row = e.target.closest('.bar'); if (!row) return hideTip();
   const pct = (row.dataset.u / C.types_declared * 100).toFixed(0);
@@ -894,9 +993,30 @@ $('bars').addEventListener('click', e => {
   if (row) goTo('datatype', row.dataset.n);
 });
 
-$('choicerows').innerHTML = DATA.choices_top.slice(0, 10).map(c => `
-  <tr><td class="m">${c.owner}</td><td class="m">${c.enum}</td>
-      <td class="n">${c.n}</td><td class="n">${c.indirect}</td></tr>`).join('');
+function renderChoiceTable(){
+  $('choicerows').innerHTML = DATA.choices_top.slice(0, 10).map(c => `
+    <tr><td class="m">${c.owner}</td><td class="m">${c.enum}</td>
+        <td class="n">${c.n}</td><td class="n">${c.indirect}</td></tr>`).join('');
+}
+
+/* The widest choice enum, rendered from this release's own cases. */
+function renderValueXSample(){
+  const owner = DATA.datatypes.find(d => d.name === 'Extension' && d.choices.length)
+             || DATA.datatypes.find(d => d.choices.length);
+  const group = owner && owner.choices[0];
+  if (!group || !group.cases) { $('valuex-sample').textContent = ''; return; }
+  const boxed = group.cases.filter(c => c.i).slice(0, 2);
+  const inline = group.cases.find(c => !c.i);
+  const last = group.cases[group.cases.length - 1];
+  const line = c => `    <span class="k">${c.i ? 'indirect case' : 'case'}</span> ` +
+                    `${c.n}(${esc(c.t)})`;
+  $('valuex-sample').innerHTML =
+    `public enum ${group.e}: Equatable, Hashable, Sendable {   ` +
+    `<span class="c">// ${owner.name}.value[x] — ${group.n} cases</span>\n` +
+    boxed.map(c => `${line(c)}${'  '}<span class="c">// boxed: complex payload</span>`).join('\n') +
+    (inline ? `\n${line(inline)}  <span class="c">// inline: primitive</span>` : '') +
+    `\n    …\n${line(last)}\n}`;
+}
 
 /* ---------------- shared code viewers ---------------- */
 const TOKENS = new RegExp([
@@ -990,15 +1110,16 @@ function makeExplorer(rootId, cfg){
       json: root.querySelector('[data-body="json"]'),
     },
   };
-  const state = { current: cfg.initial, tab: 'structure', listed: false, header: false };
-  const byName = name => cfg.items.find(i => i.name === name);
+  let items = [];
+  const state = { current: null, tab: 'structure', listed: false, header: false };
+  const byName = name => items.find(i => i.name === name);
 
   function sortKey(){ return els.sort.value; }
   function measure(item){ return cfg.metrics[sortKey()].get(item); }
 
   function filtered(){
     const q = els.q.value.trim().toLowerCase();
-    const out = cfg.items.filter(i => !q ||
+    const out = items.filter(i => !q ||
       cfg.search(i).some(v => (v || '').toLowerCase().includes(q)));
     const m = cfg.metrics[sortKey()];
     out.sort(m.alpha ? (a, b) => a.name.localeCompare(b.name)
@@ -1010,7 +1131,7 @@ function makeExplorer(rootId, cfg){
     const rows = filtered();
     state.listed = true;
     const m = cfg.metrics[sortKey()];
-    els.hits.textContent = `${rows.length} of ${cfg.items.length}`;
+    els.hits.textContent = `${rows.length} of ${items.length}`;
     els.list.innerHTML = rows.map(i => `
       <button class="row" role="option" data-name="${i.name}" aria-current="${i.name === state.current}">
         <span class="rn">${i.name}</span>
@@ -1021,11 +1142,9 @@ function makeExplorer(rootId, cfg){
   }
 
   function renderSource(item){
-    if (SOURCES === null) {
-      try { SOURCES = JSON.parse($('sources').textContent); } catch { SOURCES = {}; }
-    }
+    const sources = bundleFor('sources', SLUG) || {};
     const file = cfg.file(item);
-    const src = SOURCES[file];
+    const src = sources[file];
     if (src === undefined) {
       els.body.source.innerHTML = `<div style="padding:24px"><p class="empty">` +
         `Source for ${esc(file)} was not bundled into this build.</p></div>`;
@@ -1051,16 +1170,13 @@ function makeExplorer(rootId, cfg){
   }
 
   function renderJSON(item){
-    if (EXAMPLES === null) {
-      try { EXAMPLES = JSON.parse($('examples').textContent); }
-      catch { EXAMPLES = { examples: {}, fragments: {} }; }
-    }
-    const ex = cfg.example(item, EXAMPLES);
+    const bundle = bundleFor('examples', SLUG) || { examples: {}, fragments: {} };
+    const ex = cfg.example(item, bundle);
     if (!ex) {
       els.body.json.innerHTML = `
         <div class="srcbar"><span>no example available</span><span class="sp"></span></div>
         <div style="padding:22px 24px; display:flex; flex-direction:column; gap:12px">
-          <p class="empty">${cfg.noExample(item, EXAMPLES)}</p>
+          <p class="empty">${cfg.noExample(item, bundle)}</p>
           ${cfg.fallback ? cfg.fallback(item) : ''}
         </div>`;
       return;
@@ -1078,7 +1194,7 @@ function makeExplorer(rootId, cfg){
         <button class="btn" id="${rootId}-copyjson">Copy JSON</button>
       </div>
       <div class="src json">${numbered(lines, 0, highlightJSON)}</div>
-      <p class="srcnote">${esc(ex.caption)} · <a href="https://hl7.org/fhir/R4/license.html"
+      <p class="srcnote">${esc(ex.caption)} · <a href="https://hl7.org/fhir/${SLUG.toUpperCase()}/license.html"
         target="_blank" rel="noopener">FHIR licence</a></p>`;
     copyButton(`${rootId}-copyjson`, 'Copy JSON', () => text);
   }
@@ -1134,6 +1250,14 @@ function makeExplorer(rootId, cfg){
   });
 
   return {
+    // called on load and whenever the release changes
+    rebuild(){
+      items = cfg.items();
+      els.q.value = '';                        // a stale filter would hide the new release
+      if (!byName(state.current)) state.current = cfg.initial(items);
+      state.listed = false;
+      if (!$(rootId).closest('[hidden]')) { renderList(); renderDetail(); }
+    },
     ensure(){ if (!state.listed) { renderList(); renderDetail(); } },
     reveal(name){ this.ensure(); els.q.value = ''; renderList(); select(name); },
   };
@@ -1141,9 +1265,9 @@ function makeExplorer(rootId, cfg){
 
 /* ---------------- resources ---------------- */
 const resourceExplorer = makeExplorer('ex-resources', {
-  items: DATA.resources,
+  items: () => DATA.resources,
   noun: 'resource',
-  initial: DATA.resources.some(r => r.name === 'Patient') ? 'Patient' : DATA.resources[0].name,
+  initial: list => (list.some(r => r.name === 'Patient') ? 'Patient' : list[0].name),
   metrics: {
     name:  { get: r => r.lines, unit: 'ln', alpha: true },
     lines: { get: r => r.lines, unit: 'ln' },
@@ -1236,9 +1360,9 @@ const ROLE_LABEL = { 'domain-resource': 'resources', resource: 'resources',
 const HOLDER_CAP = 40;
 
 const datatypeExplorer = makeExplorer('ex-datatypes', {
-  items: DATA.datatypes,
+  items: () => DATA.datatypes,
   noun: 'data type',
-  initial: 'Reference',
+  initial: list => (list.some(d => d.name === 'Reference') ? 'Reference' : list[0].name),
   metrics: {
     used:   { get: d => d.used, unit: 'held' },
     name:   { get: d => d.nprops, unit: 'props', alpha: true },
@@ -1343,7 +1467,9 @@ function goTo(kind, name){
   }
 }
 
-applyRelease(verSel.value);
+const bootSlug = (EMBEDDED[0] || RELEASES[0]).slug;
+verSel.value = bootSlug;
+applyRelease(bootSlug);
 showTab('overview');
 
 </script>

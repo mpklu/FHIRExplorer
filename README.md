@@ -2,7 +2,8 @@
 
 A single-page, offline map of [Apple's FHIRModels](https://github.com/apple/FHIRModels) — what
 the generated Swift types are, how they relate, and for every resource *and* datatype its Swift
-source and a real JSON instance, both read-only.
+source and a real JSON instance, both read-only. **R4 and R5** are both built in; switch with the
+release picker.
 
 Built by parsing a local FHIRModels checkout, so nothing in it is hand-maintained: bump the
 dependency, re-run the build, and the page matches the new models exactly.
@@ -12,22 +13,26 @@ published by GitHub Actions on every push to `main`.
 
 ```
 python3 scripts/build.py            # parses ../FHIRModels, writes dist/index.html
-open dist/index.html                # ~5.1 MB (0.7 MB gzipped), self-contained, no network calls
+open dist/index.html                # ~11.5 MB (1.6 MB gzipped), self-contained, no network calls
 ```
 
 ## What's in it
 
+Every number, figure label and code sample on the page is computed from the selected release —
+nothing is hardcoded to one version.
+
 **Overview** — the three relationships the generator actually expresses in Swift, since those
-are all you need to read the other 126,000 lines:
+are all you need to read the remaining ~150,000 lines:
 
-| Relation | Shape in the code |
-|---|---|
-| Conformance | Two protocol lines off `FHIRType` — `Resource → DomainResource` and `ElementReadOnly → Element → BackboneElement`. No subclassing: 667 structs, 2 classes, 7 protocols. |
-| Containment | A resource is one struct plus a private nest. 459 of 467 backbone structs serve exactly one owner. |
-| A type-erased pointer | 658 `Reference` properties, none parameterised by target. `Reference(reference: "Banana/42")` compiles. |
+| Relation | Shape in the code | R4 → R5 |
+|---|---|---|
+| Conformance | Two protocol lines off `FHIRType`: the resource line and the element line. No subclassing anywhere. | 667 → 840 structs, 2 classes either way |
+| Containment | A resource is one struct plus a private nest of backbone structs. | 459/467 → 613/618 serve one owner |
+| A type-erased pointer | `Reference` properties, none parameterised by target. `Reference(reference: "Banana/42")` compiles. | 658 → 754 |
 
-Plus the shared datatype core (41 datatypes, the `Identifier ⇄ Reference` cycle that forces the
-module's only two classes), datatype reuse counts, and the 186 nested `value[x]` choice enums.
+Plus the shared datatype core (the `Identifier ⇄ Reference` cycle that forces the module's only
+two classes — true in both releases), datatype reuse counts, and the `value[x]` choice enums
+(186 → 259, widest 50 → 54 cases).
 
 **Resource explorer** — all 146 resources, filterable and sortable, each with:
 
@@ -47,8 +52,9 @@ path it came from (`RelatedPerson.name[0]` in `relatedperson-example.json`) — 
 have one. Chips cross-link between the two explorers, and clicking a bar on the Overview chart
 opens that datatype.
 
-**Release picker** — R4 is built. The other releases Apple ships modules for (DSTU2, STU3, R4B,
-R5, R6 ballot) show a "coming soon" panel with the exact commands to add them.
+**Release picker** — R4 (FHIR 4.0.1) and R5 (FHIR 5.0.0) are embedded; switching re-renders the
+whole page from that release's payload. DSTU2, STU3, R4B and the R6 ballot show a "coming soon"
+panel with the exact commands to add them.
 
 ## Layout
 
@@ -61,7 +67,8 @@ FHIRExplorer/
 ├── data/r4.json              # parsed structure payload (committed, ~290 kB)
 ├── data/r4.examples.json     # HL7 examples + datatype fragments (committed, ~580 kB)
 ├── data/r4.sources.json      # verbatim Swift, keyed by file (generated, ~4.1 MB, ignored)
-└── dist/index.html           # build output (generated, ~5.1 MB, ignored)
+├── data/r5.*.json            # the same three payloads for R5
+└── dist/index.html           # build output (generated, ~11.5 MB, ignored)
 ```
 
 `data/*.sources.json` and `dist/` are generated from the FHIRModels checkout, so they stay out of
@@ -74,10 +81,14 @@ needs the network to produce — with it in the repo, every build is offline.
 Defaults assume FHIRModels is a sibling checkout (`../FHIRModels`).
 
 ```bash
-python3 scripts/build.py                          # build R4
+python3 scripts/build.py                          # embed every available release
+python3 scripts/build.py --releases r4            # just one, for a smaller page
 python3 scripts/build.py --reparse                # re-parse the models first
 python3 scripts/build.py --fhir-repo /path/to/FHIRModels
 ```
+
+Each embedded release adds roughly 5–6 MB to the page (its Swift sources dominate), so use
+`--releases` if you need a lighter build — for example to stay under a host's file-size limit.
 
 Python 3.9+, standard library only. No npm, no bundler. `build.py` never touches the network;
 only `fetch_examples.py` does, and its output is committed:
@@ -124,14 +135,17 @@ python3 scripts/parse_models.py \
     --out data/r5.json --sources-out data/r5.sources.json
 ```
 
-Then flip `available` to `True` for that entry in `VERSIONS` in `scripts/build.py` and rebuild.
-Each build embeds one release; the picker offers the rest as "coming soon".
+Fetch its examples the same way (`--release r5`), flip `available` to `True` for that entry in
+`VERSIONS` in `scripts/build.py`, and rebuild. Every available release gets embedded; the picker
+offers the rest as "coming soon".
 
 ## How the parse works
 
 `parse_models.py` reads the Swift text — no Swift toolchain involved:
 
-- top-level declarations and their protocol conformances → which line a type sits on
+- top-level declarations and their protocol conformances → which line a type sits on. Conformance
+  is followed transitively *and* through typealiases, because R5 writes `Address: DataType` where
+  `DataType` is a typealias for `Element`, and `Timing: BackboneType` where `BackboneType: DataType`
 - `public var` / `public let` and their types → containment edges, datatype reuse, code bindings
 - nested `…X` enums and their cases (including `indirect case`) → `value[x]` choice slots
 - the `///` doc comment above each property → the only in-code hint about reference targets
@@ -155,4 +169,5 @@ back to its page on hl7.org under the [FHIR licence](https://hl7.org/fhir/R4/lic
 HL7®, FHIR® and the FHIR flame mark are registered trademarks of Health Level Seven
 International.
 
-Current build: `Sources/ModelsR4` · FHIR `4.0.1-9346c8cc45` · FHIRModels @ `3fdead0`.
+Current build: `Sources/ModelsR4` (FHIR `4.0.1-9346c8cc45`) and `Sources/ModelsR5`
+(FHIR `5.0.0`), both from FHIRModels @ `3fdead0`.

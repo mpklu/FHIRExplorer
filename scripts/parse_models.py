@@ -107,20 +107,48 @@ def parse(models_dir: str) -> dict:
                     nested.setdefault(name, []).append({"enum": nm.group(1), "cases": cases})
 
     # --- classify every declared type by which protocol line it sits on ----
+    # Conformance has to be followed transitively and through typealiases: R5
+    # writes `Address: DataType` where DataType is a typealias for Element, and
+    # `Timing: BackboneType` where `BackboneType: DataType`.
+    def deref(proto: str) -> str:
+        seen = set()
+        while proto in aliases and proto not in seen:
+            seen.add(proto)
+            proto = aliases[proto]
+        return proto
+
+    protocol_parents = {n: [deref(p) for p in t["conforms"]]
+                        for n, t in types.items() if t["kind"] == "protocol"}
+
+    def closure(protos: list[str]) -> set[str]:
+        out, stack = set(), [deref(p) for p in protos]
+        while stack:
+            p = stack.pop()
+            if p in out:
+                continue
+            out.add(p)
+            stack.extend(protocol_parents.get(p, []))
+        return out
+
+    # Order matters: in R5 both BackboneType and PrimitiveType conform to
+    # DataType (= Element), so they have to be tested before the datatype line.
+    ROLE_BY_PROTOCOL = [
+        ("domain-resource", {"DomainResource"}),
+        ("resource",        {"Resource"}),
+        ("backbone",        {"BackboneElement", "BackboneType"}),
+        ("primitive",       {"FHIRPrimitiveType", "PrimitiveType"}),
+        ("datatype",        {"Element", "ElementReadOnly"}),
+    ]
+
     def role(name: str, t: dict) -> str:
-        c = set(t["conforms"])
         if t["kind"] == "protocol":
             return "protocol"
         if name == "ResourceProxy":
             return "proxy"
-        if "DomainResource" in c:
-            return "domain-resource"
-        if "Resource" in c:
-            return "resource"
-        if "BackboneElement" in c:
-            return "backbone"
-        if "Element" in c or "ElementReadOnly" in c:
-            return "datatype"
+        conforms = closure(t["conforms"])
+        for label, markers in ROLE_BY_PROTOCOL:
+            if conforms & markers:
+                return label
         if t["kind"] == "enum":
             return "enum"
         return "primitive"
@@ -277,7 +305,9 @@ def parse(models_dir: str) -> dict:
             "holds": sorted(holds.get(n, set())),
             "holders": {role: sorted(names) for role, names in sorted(by_role.items())},
             "choices": [{"e": g["enum"], "n": len(g["cases"]),
-                         "indirect": sum(1 for c in g["cases"] if c["indirect"])}
+                         "indirect": sum(1 for c in g["cases"] if c["indirect"]),
+                         "cases": [{"n": c["name"], "t": c["payload"], "i": c["indirect"]}
+                                   for c in g["cases"]]}
                         for g in nested.get(n, [])],
         }
 
@@ -299,6 +329,8 @@ def parse(models_dir: str) -> dict:
          for owner, grps in nested.items() for g in grps),
         key=lambda c: -c["n"])
 
+    choice_max = max((c["n"] for c in all_choices), default=0)
+    at_max = [c for c in all_choices if c["n"] == choice_max]
     roles = collections.Counter(t["role"] for t in types.values())
     dt_edges = sorted([s, d] for (s, d) in edges
                       if s in datatype_names and d in datatype_names)
@@ -325,6 +357,9 @@ def parse(models_dir: str) -> dict:
             "protocols": sum(1 for t in types.values() if t["kind"] == "protocol"),
             "shared_backbones": len(shared_backbones),
             "resource_proxy_cases": resource_proxy_cases(models_dir),
+            "choice_max": choice_max,
+            "choice_max_count": len(at_max),
+            "choice_max_indirect": at_max[0]["indirect"] if at_max else 0,
         },
         "roles": dict(roles),
         "resources": resources,

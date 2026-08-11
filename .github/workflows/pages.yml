@@ -57,7 +57,9 @@ jobs:
           repository: apple/FHIRModels
           ref: ${{ steps.models.outputs.ref }}
           path: .fhirmodels
-          sparse-checkout: Sources/ModelsR4
+          sparse-checkout: |
+            Sources/ModelsR4
+            Sources/ModelsR5
 
       - name: Build dist/index.html
         run: python3 scripts/build.py --reparse --fhir-repo .fhirmodels
