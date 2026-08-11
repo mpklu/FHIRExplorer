@@ -1,0 +1,1033 @@
+<title>FHIRExplorer — the shape of Apple's FHIRModels</title>
+<style>
+:root{
+  --ground:#EDF0EF; --surface:#FBFCFB; --surface-2:#F4F6F5; --raise:#FFFFFF;
+  --ink:#0F1719; --ink-2:#38474A; --muted:#637376;
+  --line:#D7DEDC; --line-2:#C3CDCB;
+  --res:#008E7C; --elem:#B05A18; --term:#7E54AA;
+  --res-wash:#008E7C1A; --elem-wash:#B05A181A; --term-wash:#7E54AA1A;
+  --shadow:0 1px 2px #0f171910, 0 8px 24px #0f171908;
+  --bar-h:58px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1113; --surface:#131A1D; --surface-2:#182124; --raise:#1D272A;
+    --ink:#E4EAE9; --ink-2:#BDC9C9; --muted:#87979A;
+    --line:#26302F; --line-2:#33403F;
+    --res:#00A090; --elem:#CA7828; --term:#9C72CA;
+    --res-wash:#00A09022; --elem-wash:#CA782822; --term-wash:#9C72CA22;
+    --shadow:0 1px 2px #0000004d, 0 10px 28px #00000038;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1113; --surface:#131A1D; --surface-2:#182124; --raise:#1D272A;
+  --ink:#E4EAE9; --ink-2:#BDC9C9; --muted:#87979A;
+  --line:#26302F; --line-2:#33403F;
+  --res:#00A090; --elem:#CA7828; --term:#9C72CA;
+  --res-wash:#00A09022; --elem-wash:#CA782822; --term-wash:#9C72CA22;
+  --shadow:0 1px 2px #0000004d, 0 10px 28px #00000038;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:"Iowan Old Style",Charter,"Palatino Linotype",Palatino,Georgia,serif;
+  font-weight:600; text-wrap:balance; margin:0}
+h1{font-size:clamp(2rem,4.6vw,2.9rem); line-height:1.1; letter-spacing:-.015em}
+h2{font-size:1.6rem; line-height:1.2; letter-spacing:-.01em}
+h3{font-size:1.05rem; line-height:1.3}
+p{margin:0; max-width:66ch}
+a{color:var(--res); text-underline-offset:2px}
+a:hover{text-decoration-thickness:2px}
+code,.mono{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,"JetBrains Mono",monospace}
+code{font-size:.86em; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:4px; padding:.08em .34em}
+.eyebrow{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:.7rem;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky; top:0; z-index:15; background:var(--surface);
+  border-bottom:1px solid var(--line); display:flex; align-items:center; gap:18px;
+  padding:0 24px; height:var(--bar-h); overflow-x:auto}
+.brand{display:flex; align-items:baseline; gap:9px; flex:0 0 auto}
+.brand b{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:.95rem;
+  letter-spacing:-.01em; font-weight:600}
+.brand span{font-size:.72rem; color:var(--muted)}
+.tabs{display:flex; gap:2px; flex:1 1 auto}
+.tab{font:inherit; font-size:.88rem; color:var(--muted); background:none; border:0;
+  border-bottom:2px solid transparent; padding:8px 13px 7px; cursor:pointer; white-space:nowrap}
+.tab:hover:not(:disabled){color:var(--ink)}
+.tab[aria-selected=true]{color:var(--ink); border-bottom-color:var(--res); font-weight:600}
+.tab:disabled{opacity:.4; cursor:not-allowed;
+  border-bottom-color:transparent; color:var(--muted); font-weight:400}
+.verpick{display:flex; align-items:center; gap:8px; flex:0 0 auto}
+.verpick label{font-size:.72rem; color:var(--muted); letter-spacing:.04em}
+select,input[type=search]{font:inherit; font-size:.85rem; color:var(--ink);
+  background:var(--surface-2); border:1px solid var(--line-2); border-radius:7px; padding:5px 9px}
+:focus-visible{outline:2px solid var(--res); outline-offset:1px}
+
+.wrap{max-width:1080px; margin:0 auto; padding:0 28px 90px}
+.wide{max-width:1240px}
+[hidden]{display:none!important}
+
+/* ---------- overview ---------- */
+header.hero{padding:56px 0 36px; display:flex; flex-direction:column; gap:17px}
+.deck{font-size:1.1rem; color:var(--ink-2); max-width:64ch}
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); gap:1px;
+  background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-top:6px}
+.stat{background:var(--surface); padding:14px 16px; display:flex; flex-direction:column; gap:2px}
+.stat b{font-family:ui-monospace,Menlo,monospace; font-size:1.45rem; font-weight:600;
+  letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1.1}
+.stat span{font-size:.76rem; color:var(--muted)}
+.stat.res b{color:var(--res)} .stat.elem b{color:var(--elem)} .stat.term b{color:var(--term)}
+
+section{padding-top:52px; display:flex; flex-direction:column; gap:20px}
+section > .head{display:flex; flex-direction:column; gap:7px;
+  border-top:1px solid var(--line); padding-top:22px}
+.note{font-size:.92rem; color:var(--ink-2); max-width:66ch}
+.tight{display:flex; flex-direction:column; gap:12px}
+
+/* ---------- provenance ---------- */
+.prov{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1px;
+  background:var(--line); border:1px solid var(--line); border-radius:11px;
+  overflow:hidden; box-shadow:var(--shadow)}
+.prov > div{background:var(--surface); padding:14px 16px; display:flex; flex-direction:column; gap:3px}
+.prov dt{font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+  font-family:ui-monospace,Menlo,monospace}
+.prov dd{margin:0; font-family:ui-monospace,Menlo,monospace; font-size:.85rem; word-break:break-word}
+
+/* ---------- figures ---------- */
+figure{margin:0; background:var(--surface); border:1px solid var(--line);
+  border-radius:12px; padding:22px 20px 16px; box-shadow:var(--shadow);
+  display:flex; flex-direction:column; gap:14px}
+.figscroll{overflow-x:auto}
+figure svg{display:block; max-width:100%; height:auto; min-width:600px; color:var(--ink-2)}
+figcaption{font-size:.84rem; color:var(--muted); border-top:1px solid var(--line);
+  padding-top:12px; max-width:74ch}
+figcaption b{color:var(--ink-2); font-weight:600}
+.svg-label{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12.5px; fill:var(--ink)}
+.svg-sub{font-family:system-ui,sans-serif; font-size:10.5px; fill:var(--muted); letter-spacing:.03em}
+.svg-edge{font-family:system-ui,sans-serif; font-size:10.5px; fill:var(--muted)}
+.box{fill:var(--surface-2); stroke:var(--line-2); stroke-width:1}
+.box-res{fill:var(--res-wash); stroke:var(--res); stroke-width:1}
+.box-elem{fill:var(--elem-wash); stroke:var(--elem)}
+.box-term{fill:var(--term-wash); stroke:var(--term)}
+.wire{fill:none; stroke:var(--line-2); stroke-width:1.5}
+.wire-hot{fill:none; stroke:var(--elem); stroke-width:2}
+
+/* ---------- bars ---------- */
+.bars{display:flex; flex-direction:column; gap:2px}
+.bar{display:grid; grid-template-columns:168px 1fr 62px; align-items:center; gap:12px;
+  padding:3px 8px; border-radius:6px}
+.bar:hover{background:var(--surface-2)}
+.bar .nm{font-family:ui-monospace,Menlo,monospace; font-size:.8rem;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.bar .track{display:block; height:11px; min-width:0;
+  background:linear-gradient(var(--line),var(--line)) left center/100% 1px no-repeat}
+.bar .fill{display:block; height:11px; background:var(--res);
+  border-radius:0 4px 4px 0; min-width:2px}
+.bar .val{font-family:ui-monospace,Menlo,monospace; font-size:.78rem; text-align:right;
+  font-variant-numeric:tabular-nums; color:var(--ink-2)}
+
+/* ---------- explorer ---------- */
+.explorer{border:1px solid var(--line); border-radius:12px; background:var(--surface);
+  box-shadow:var(--shadow); overflow:hidden; margin-top:26px}
+.controls{display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+  padding:12px 14px; border-bottom:1px solid var(--line); background:var(--surface-2)}
+.controls input[type=search]{flex:1 1 220px; min-width:0; background:var(--surface)}
+.hits{font-size:.76rem; color:var(--muted); font-variant-numeric:tabular-nums}
+.panes{display:grid; grid-template-columns:minmax(210px,268px) 1fr; height:min(80vh,780px)}
+.list{border-right:1px solid var(--line); overflow-y:auto; padding:6px}
+.row{display:flex; align-items:baseline; gap:8px; width:100%; text-align:left; cursor:pointer;
+  font:inherit; color:inherit; background:none; border:0; border-radius:7px; padding:6px 9px}
+.row:hover{background:var(--surface-2)}
+.row[aria-current=true]{background:var(--res-wash); box-shadow:inset 2px 0 0 var(--res)}
+.row .rn{font-family:ui-monospace,Menlo,monospace; font-size:.81rem; flex:1;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.row .rm{font-family:ui-monospace,Menlo,monospace; font-size:.7rem; color:var(--muted);
+  font-variant-numeric:tabular-nums}
+
+.pane{display:flex; flex-direction:column; min-width:0; overflow:hidden}
+.dhead{padding:20px 24px 0; display:flex; flex-direction:column; gap:6px; flex:0 0 auto}
+.dhead h3{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:1.2rem; letter-spacing:-.01em}
+.dhead p{font-size:.9rem; color:var(--ink-2)}
+.subtabs{display:flex; gap:2px; padding:12px 24px 0; border-bottom:1px solid var(--line);
+  flex:0 0 auto; background:var(--surface)}
+.subtab{font:inherit; font-size:.82rem; color:var(--muted); background:none; border:0;
+  border-bottom:2px solid transparent; padding:6px 12px; cursor:pointer;
+  font-family:ui-monospace,Menlo,monospace}
+.subtab[aria-selected=true]{color:var(--ink); border-bottom-color:var(--res)}
+.subtab:hover{color:var(--ink)}
+.panebody{overflow:auto; flex:1 1 auto; padding:20px 24px 26px;
+  display:flex; flex-direction:column; gap:20px}
+.panebody.code{padding:0; gap:0}
+
+.pill{display:inline-flex; align-items:center; gap:5px; font-family:ui-monospace,Menlo,monospace;
+  font-size:.68rem; letter-spacing:.04em; padding:2px 7px; border-radius:999px;
+  border:1px solid var(--line-2); color:var(--muted); background:var(--surface-2)}
+.pill.res{border-color:var(--res); color:var(--res); background:var(--res-wash)}
+.metrics{display:grid; grid-template-columns:repeat(auto-fit,minmax(92px,1fr)); gap:1px;
+  background:var(--line); border:1px solid var(--line); border-radius:9px; overflow:hidden}
+.metrics div{background:var(--surface-2); padding:9px 11px; display:flex; flex-direction:column}
+.metrics b{font-family:ui-monospace,Menlo,monospace; font-size:1.1rem; font-variant-numeric:tabular-nums}
+.metrics span{font-size:.68rem; color:var(--muted)}
+.block{display:flex; flex-direction:column; gap:9px}
+.block > h4{margin:0; font-size:.72rem; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--muted); font-family:ui-monospace,Menlo,monospace; font-weight:500}
+.chips{display:flex; flex-wrap:wrap; gap:6px}
+.chip{font-family:ui-monospace,Menlo,monospace; font-size:.75rem; padding:3px 8px;
+  border:1px solid var(--line-2); border-radius:6px; background:var(--surface-2)}
+.chip.b{border-left:2px solid var(--elem)}
+.chip.t{border-left:2px solid var(--term)}
+.reflist{display:flex; flex-direction:column; gap:1px; background:var(--line);
+  border:1px solid var(--line); border-radius:9px; overflow:hidden}
+.reflist > div{background:var(--surface); padding:8px 11px; display:flex; gap:10px;
+  align-items:baseline; flex-wrap:wrap}
+.reflist .p{font-family:ui-monospace,Menlo,monospace; font-size:.79rem; color:var(--res)}
+.reflist .own{font-family:ui-monospace,Menlo,monospace; font-size:.68rem; color:var(--muted)}
+.reflist .doc{font-size:.82rem; color:var(--ink-2); flex:1 1 240px; min-width:0}
+.arr{font-family:ui-monospace,Menlo,monospace; font-size:.68rem; color:var(--elem)}
+.empty{font-size:.86rem; color:var(--muted); font-style:italic}
+
+/* ---------- source viewer ---------- */
+.srcbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:9px 24px; border-bottom:1px solid var(--line); background:var(--surface-2);
+  font-family:ui-monospace,Menlo,monospace; font-size:.74rem; color:var(--muted);
+  position:sticky; top:0; z-index:2}
+.srcbar .sp{flex:1}
+.btn{font:inherit; font-family:ui-monospace,Menlo,monospace; font-size:.74rem;
+  color:var(--ink); background:var(--surface); border:1px solid var(--line-2);
+  border-radius:6px; padding:3px 9px; cursor:pointer}
+.btn:hover{border-color:var(--res); color:var(--res)}
+.src{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:.78rem; line-height:1.55;
+  tab-size:4; padding:10px 0 40px}
+.src .l{display:grid; grid-template-columns:56px 1fr; gap:14px; white-space:pre;
+  padding-right:24px}
+.src .l:hover{background:var(--surface-2)}
+.src .g{text-align:right; color:var(--muted); opacity:.65; user-select:none;
+  font-variant-numeric:tabular-nums; position:sticky; left:0; background:var(--surface)}
+.src .l:hover .g{background:var(--surface-2)}
+.src .fold{font:inherit; font-family:inherit; color:var(--muted); background:none;
+  border:0; border-bottom:1px dashed var(--line-2); width:100%; text-align:left;
+  cursor:pointer; padding:0 24px 0 0}
+.src .fold:hover{color:var(--res)}
+.src .c{color:var(--muted); font-style:italic}
+.src .k{color:var(--term)}
+.src .s{color:var(--res)}
+.src .t{color:var(--elem)}
+
+/* ---------- coming soon ---------- */
+.soon{max-width:640px; margin:0 auto; padding:96px 0; display:flex;
+  flex-direction:column; gap:18px; align-items:flex-start}
+.soon .badge{font-family:ui-monospace,Menlo,monospace; font-size:.72rem; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--elem); border:1px solid var(--elem);
+  background:var(--elem-wash); border-radius:999px; padding:3px 11px}
+.soon h2{font-size:2rem}
+.soon ol{margin:0; padding-left:22px; font-size:.9rem; color:var(--ink-2);
+  display:flex; flex-direction:column; gap:7px; max-width:60ch}
+.soon code{font-size:.82em}
+
+/* ---------- misc ---------- */
+.grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:11px;
+  padding:16px 18px; display:flex; flex-direction:column; gap:8px}
+.card h3{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:.9rem}
+.card p{font-size:.88rem; color:var(--ink-2)}
+pre.sample{margin:0; overflow-x:auto; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:9px; padding:13px 15px; font-size:.8rem; line-height:1.65;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace}
+pre.sample .c{color:var(--muted)} pre.sample .k{color:var(--term)}
+pre.sample .ok{color:var(--res)} pre.sample .bad{color:var(--elem)}
+table{width:100%; border-collapse:collapse; font-size:.85rem}
+th,td{text-align:left; padding:7px 10px; border-bottom:1px solid var(--line)}
+th{font-family:ui-monospace,Menlo,monospace; font-size:.7rem; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); font-weight:500}
+td.n{font-family:ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums; text-align:right}
+td.m{font-family:ui-monospace,Menlo,monospace}
+.tablewrap{overflow-x:auto; background:var(--surface); border:1px solid var(--line);
+  border-radius:11px; box-shadow:var(--shadow)}
+footer{margin-top:60px; border-top:1px solid var(--line); padding-top:22px;
+  display:flex; flex-direction:column; gap:10px; font-size:.85rem; color:var(--muted)}
+footer b{color:var(--ink-2)}
+#tip{position:fixed; pointer-events:none; opacity:0; transition:opacity .12s;
+  background:var(--raise); color:var(--ink); border:1px solid var(--line-2); border-radius:7px;
+  padding:5px 9px; font-size:.76rem; box-shadow:var(--shadow); z-index:20; max-width:260px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:760px){
+  .panes{grid-template-columns:1fr; height:auto}
+  .list{border-right:0; border-bottom:1px solid var(--line); max-height:240px}
+  .pane{overflow:visible}
+  .panebody{overflow:visible}
+  .bar{grid-template-columns:132px 1fr 54px}
+  .topbar{padding:0 16px}
+  .wrap{padding:0 18px 70px}
+}
+</style>
+
+<div class="topbar">
+  <div class="brand">
+    <b>FHIRExplorer</b>
+    <span id="brandsub"></span>
+  </div>
+  <div class="tabs" role="tablist" aria-label="Views">
+    <button class="tab" role="tab" id="t-overview" aria-controls="p-overview" aria-selected="true">Overview</button>
+    <button class="tab" role="tab" id="t-explorer" aria-controls="p-explorer" aria-selected="false">Resource explorer</button>
+  </div>
+  <div class="verpick">
+    <label for="ver">FHIR release</label>
+    <select id="ver" aria-label="FHIR release"></select>
+  </div>
+</div>
+
+<!-- ===================== COMING SOON ===================== -->
+<div class="wrap" id="p-soon" hidden>
+  <div class="soon">
+    <span class="badge">Coming soon</span>
+    <h2 id="soon-title">R5 is not built yet</h2>
+    <p class="note" id="soon-body"></p>
+    <p class="note">The parser is release-agnostic — it reads whichever
+    <code>Sources/Models*</code> directory it is pointed at. Adding this release means running
+    the build once more and rebuilding the page:</p>
+    <ol>
+      <li>Parse the module:<br><code id="soon-cmd"></code></li>
+      <li>Add the release to <code>VERSIONS</code> in <code>scripts/build.py</code>.</li>
+      <li><code>python3 scripts/build.py</code> — the release becomes selectable here.</li>
+    </ol>
+    <p class="note">Until then, switch back to <b>R4</b> in the release picker above.</p>
+  </div>
+</div>
+
+<!-- ===================== OVERVIEW ===================== -->
+<div class="wrap" id="p-overview" role="tabpanel" aria-labelledby="t-overview">
+
+<header class="hero">
+  <div class="eyebrow" id="hero-eyebrow"></div>
+  <h1>679 types, three kinds of relationship</h1>
+  <p class="deck">Apple's <b>FHIRModels</b> generates every type in
+  <code>Sources/ModelsR4</code> from the FHIR StructureDefinitions, and the generator only ever
+  expresses three relations in Swift: <b>protocol conformance</b>, <b>containment</b> by
+  property, and one deliberately <b>type-erased pointer</b>. Learn those three and the other
+  126,000 lines are repetition.</p>
+  <div class="stats">
+    <div class="stat res"><b>146</b><span>resource structs</span></div>
+    <div class="stat elem"><b>467</b><span>backbone structs</span></div>
+    <div class="stat elem"><b>41</b><span>shared datatypes</span></div>
+    <div class="stat term"><b>445</b><span>terminology enums</span></div>
+    <div class="stat"><b>186</b><span>choice enums</span></div>
+    <div class="stat"><b>4,675</b><span>type→type edges</span></div>
+  </div>
+</header>
+
+<section>
+  <div class="head">
+    <div class="eyebrow">Where this comes from</div>
+    <h2>Generated from a read-only upstream library</h2>
+  </div>
+  <p class="note">FHIRModels is Apple's Swift port of the FHIR specification — a dependency, not
+  something to edit. This page is generated by parsing that checkout; nothing here is
+  hand-maintained, so re-running the build after a bump reflects the new models exactly.</p>
+  <dl class="prov">
+    <div><dt>Upstream</dt><dd><a href="https://github.com/apple/FHIRModels" target="_blank" rel="noopener">github.com/apple/FHIRModels</a></dd></div>
+    <div><dt>Module</dt><dd id="prov-module"></dd></div>
+    <div><dt>FHIR version</dt><dd id="prov-fhir"></dd></div>
+    <div><dt>Checkout</dt><dd id="prov-commit"></dd></div>
+    <div><dt>Parsed</dt><dd id="prov-files"></dd></div>
+    <div><dt>License</dt><dd>Apache-2.0 · © Apple Inc.</dd></div>
+  </dl>
+</section>
+
+<!-- ---- relation 1 ---- -->
+<section>
+  <div class="head">
+    <div class="eyebrow">Relation 1 — conformance</div>
+    <h2>Two protocol lines, no class hierarchy</h2>
+  </div>
+  <p class="note">FHIR's spec has a base-class hierarchy; this port doesn't. There are seven
+  protocols and 667 structs that conform to them — no subclassing anywhere. Which line a type
+  sits on tells you what it is: something the server can address by URL, or something that only
+  exists inside a parent.</p>
+
+  <figure>
+    <div class="figscroll">
+    <svg viewBox="0 0 900 372" role="img" aria-label="FHIRType splits into two protocol lines: Resource then DomainResource, carrying 143 resource structs plus Binary, Bundle and Parameters; and ElementReadOnly then Element then BackboneElement, carrying 39 datatype structs, 467 backbone structs, and the two final classes Reference and Identifier.">
+      <defs>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--line-2)"/>
+        </marker>
+      </defs>
+      <rect class="box" x="24" y="162" width="126" height="46" rx="7"/>
+      <text class="svg-label" x="87" y="184" text-anchor="middle">FHIRType</text>
+      <text class="svg-sub" x="87" y="199" text-anchor="middle">protocol · root</text>
+
+      <path class="wire" d="M150 172 H180 V72 H206" marker-end="url(#a)"/>
+      <text class="svg-edge" x="184" y="118">conforms to</text>
+      <rect class="box-res" x="206" y="50" width="150" height="44" rx="7" fill-opacity="1"/>
+      <text class="svg-label" x="281" y="70" text-anchor="middle">Resource</text>
+      <text class="svg-sub" x="281" y="85" text-anchor="middle">has id · meta · URL identity</text>
+
+      <path class="wire" d="M356 72 H386" marker-end="url(#a)"/>
+      <rect class="box-res" x="386" y="50" width="164" height="44" rx="7" fill-opacity="1"/>
+      <text class="svg-label" x="468" y="70" text-anchor="middle">DomainResource</text>
+      <text class="svg-sub" x="468" y="85" text-anchor="middle">adds text · contained</text>
+
+      <path class="wire" d="M550 72 H586" marker-end="url(#a)"/>
+      <rect class="box-res" x="586" y="50" width="290" height="44" rx="7"/>
+      <text class="svg-label" x="731" y="70" text-anchor="middle">143 resource structs</text>
+      <text class="svg-sub" x="731" y="85" text-anchor="middle">Patient · Observation · Appointment · …</text>
+
+      <path class="wire" d="M281 94 V128 H586" marker-end="url(#a)"/>
+      <text class="svg-edge" x="300" y="122">3 skip DomainResource</text>
+      <rect class="box-res" x="586" y="106" width="290" height="40" rx="7"/>
+      <text class="svg-label" x="731" y="131" text-anchor="middle">Binary · Bundle · Parameters</text>
+
+      <path class="wire" d="M150 198 H180 V228 H206" marker-end="url(#a)"/>
+      <rect class="box-elem" x="206" y="206" width="150" height="44" rx="7" fill-opacity="1"/>
+      <text class="svg-label" x="281" y="226" text-anchor="middle">ElementReadOnly</text>
+      <text class="svg-sub" x="281" y="241" text-anchor="middle">immutable · let only</text>
+
+      <path class="wire" d="M356 228 H386" marker-end="url(#a)"/>
+      <rect class="box-elem" x="386" y="206" width="164" height="44" rx="7" fill-opacity="1"/>
+      <text class="svg-label" x="468" y="226" text-anchor="middle">Element</text>
+      <text class="svg-sub" x="468" y="241" text-anchor="middle">adds var · extension</text>
+
+      <path class="wire" d="M550 228 H586" marker-end="url(#a)"/>
+      <rect class="box-elem" x="586" y="206" width="290" height="40" rx="7"/>
+      <text class="svg-label" x="731" y="231" text-anchor="middle">39 datatype structs</text>
+
+      <path class="wire" d="M468 250 V282 H486" marker-end="url(#a)"/>
+      <rect class="box-elem" x="486" y="260" width="170" height="44" rx="7" fill-opacity="1"/>
+      <text class="svg-label" x="571" y="280" text-anchor="middle">BackboneElement</text>
+      <text class="svg-sub" x="571" y="295" text-anchor="middle">adds modifierExtension</text>
+
+      <path class="wire" d="M656 282 H680" marker-end="url(#a)"/>
+      <rect class="box-elem" x="680" y="260" width="196" height="44" rx="7"/>
+      <text class="svg-label" x="778" y="280" text-anchor="middle">467 backbone structs</text>
+      <text class="svg-sub" x="778" y="295" text-anchor="middle">459 serve one owner only</text>
+
+      <path class="wire-hot" d="M281 250 V336 H584" marker-end="url(#a)"/>
+      <text class="svg-edge" x="300" y="330" fill="var(--elem)">only 2 stop here</text>
+      <rect class="box-elem" x="584" y="314" width="292" height="42" rx="7"/>
+      <text class="svg-label" x="730" y="333" text-anchor="middle">final class Reference · Identifier</text>
+      <text class="svg-sub" x="730" y="348" text-anchor="middle">classes, not structs — they recurse into each other</text>
+    </svg>
+    </div>
+    <figcaption>Every edge is Swift protocol conformance. <b>Where a type lands decides how you
+    build it:</b> anything on the resource line can be fetched by URL and owns an <code>id</code>;
+    anything on the element line is only ever reachable through a parent. The two
+    <code>final class</code> leaves are the exception the compiler forced — see the datatype core
+    below.</figcaption>
+  </figure>
+</section>
+
+<!-- ---- relation 2 ---- -->
+<section>
+  <div class="head">
+    <div class="eyebrow">Relation 2 — containment</div>
+    <h2>A resource is one struct plus its private nest</h2>
+  </div>
+  <p class="note">Of 467 backbone structs, 459 are declared in the same file as exactly one
+  resource and are used by nothing else — <code>PatientContact</code> belongs to
+  <code>Patient</code> and cannot appear anywhere else. Only eight
+  (<code>Dosage</code>, <code>Timing</code>, <code>ElementDefinition</code>,
+  <code>Population</code>, <code>ProdCharacteristic</code>, <code>ProductShelfLife</code>,
+  <code>MarketingStatus</code>, <code>SubstanceAmount</code>) are shared across resources.</p>
+
+  <figure>
+    <div class="figscroll">
+    <svg viewBox="0 0 900 356" role="img" aria-label="Patient declares 24 properties and nests three private structs: PatientCommunication with 5 properties, PatientContact with 10, PatientLink with 5. Its properties reach out to 11 shared datatypes, 3 terminology enum bindings, 4 Reference properties, and 2 choice enums.">
+      <defs>
+        <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--line-2)"/>
+        </marker>
+      </defs>
+      <rect class="box-res" x="24" y="30" width="250" height="58" rx="8" fill-opacity="1"/>
+      <text class="svg-label" x="40" y="54">struct Patient</text>
+      <text class="svg-sub" x="40" y="71">: DomainResource · 24 properties · 582 lines</text>
+
+      <path class="wire" d="M60 88 V128" marker-end="url(#b)"/>
+      <text class="svg-edge" x="70" y="114">nests</text>
+      <rect class="box" x="24" y="128" width="250" height="180" rx="8" stroke-dasharray="4 3"/>
+      <text class="svg-sub" x="40" y="150">resource-private structs</text>
+      <rect class="box-elem" x="40" y="160" width="218" height="36" rx="6"/>
+      <text class="svg-label" x="52" y="183">PatientCommunication</text>
+      <text class="svg-sub" x="246" y="183" text-anchor="end">5</text>
+      <rect class="box-elem" x="40" y="204" width="218" height="36" rx="6"/>
+      <text class="svg-label" x="52" y="227">PatientContact</text>
+      <text class="svg-sub" x="246" y="227" text-anchor="end">10</text>
+      <rect class="box-elem" x="40" y="248" width="218" height="36" rx="6"/>
+      <text class="svg-label" x="52" y="271">PatientLink</text>
+      <text class="svg-sub" x="246" y="271" text-anchor="end">5</text>
+      <text class="svg-sub" x="52" y="299">properties each →</text>
+
+      <path class="wire" d="M274 59 H330 V44 H392" marker-end="url(#b)"/>
+      <text class="svg-edge" x="336" y="38">holds</text>
+      <rect class="box-elem" x="392" y="26" width="484" height="42" rx="7"/>
+      <text class="svg-label" x="408" y="45">11 shared datatypes</text>
+      <text class="svg-sub" x="408" y="60">HumanName · Address · ContactPoint · Identifier · CodeableConcept · Period · …</text>
+
+      <path class="wire" d="M330 59 V118 H392" marker-end="url(#b)"/>
+      <text class="svg-edge" x="336" y="112">binds</text>
+      <rect class="box-term" x="392" y="98" width="484" height="42" rx="7"/>
+      <text class="svg-label" x="408" y="117">3 terminology bindings</text>
+      <text class="svg-sub" x="408" y="132">gender → AdministrativeGender ×2 · link.type → LinkType</text>
+
+      <path class="wire" d="M330 59 V192 H392" marker-end="url(#b)"/>
+      <text class="svg-edge" x="336" y="186">points at</text>
+      <rect class="box" x="392" y="172" width="484" height="42" rx="7"/>
+      <text class="svg-label" x="408" y="191">4 Reference properties</text>
+      <text class="svg-sub" x="408" y="206">generalPractitioner[] · managingOrganization · contact.organization · link.other</text>
+
+      <path class="wire" d="M330 59 V266 H392" marker-end="url(#b)"/>
+      <text class="svg-edge" x="336" y="260">chooses</text>
+      <rect class="box" x="392" y="246" width="484" height="42" rx="7"/>
+      <text class="svg-label" x="408" y="265">2 choice enums</text>
+      <text class="svg-sub" x="408" y="280">DeceasedX (bool | dateTime) · MultipleBirthX (bool | integer)</text>
+    </svg>
+    </div>
+    <figcaption><b>Patient is the template every resource follows.</b> The nest is private, so
+    there is no shortcut: to build a <code>Patient.contact</code> you construct a
+    <code>PatientContact</code>, and the same shape repeats 146 times with different names. The
+    <b>Resource explorer</b> tab renders this breakdown, plus the Swift source, for any
+    resource.</figcaption>
+  </figure>
+</section>
+
+<!-- ---- datatype core ---- -->
+<section>
+  <div class="head">
+    <div class="eyebrow">Relation 2, continued — the shared core</div>
+    <h2>Forty-one datatypes carry the whole module</h2>
+  </div>
+  <p class="note">The resources are wide but shallow; the reuse lives here. Two of these
+  datatypes point at each other, and because a Swift struct cannot contain itself, that single
+  cycle is why <code>Reference</code> and <code>Identifier</code> are the module's only classes.</p>
+
+  <figure>
+    <div class="figscroll">
+    <svg viewBox="0 0 900 424" role="img" aria-label="The datatype core: CodeableConcept, Meta and Signature point at Coding; HumanName, Address and ContactPoint point at Period; Range, Ratio and SampledData point at Quantity; Identifier holds a Period, and Identifier and Reference point at each other, forming a cycle.">
+      <defs>
+        <marker id="c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--line-2)"/>
+        </marker>
+        <marker id="ch" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--elem)"/>
+        </marker>
+      </defs>
+      <text class="svg-sub" x="24" y="22">leaf datatypes</text>
+      <text class="svg-sub" x="352" y="22">shared building blocks</text>
+      <text class="svg-sub" x="640" y="22">the recursive pair</text>
+
+      <rect class="box" x="24" y="34" width="176" height="32" rx="6"/><text class="svg-label" x="36" y="55">CodeableConcept</text>
+      <rect class="box" x="24" y="74" width="176" height="32" rx="6"/><text class="svg-label" x="36" y="95">Meta</text>
+      <rect class="box" x="24" y="114" width="176" height="32" rx="6"/><text class="svg-label" x="36" y="135">Signature</text>
+      <rect class="box" x="24" y="170" width="176" height="32" rx="6"/><text class="svg-label" x="36" y="191">HumanName</text>
+      <rect class="box" x="24" y="210" width="176" height="32" rx="6"/><text class="svg-label" x="36" y="231">Address</text>
+      <rect class="box" x="24" y="250" width="176" height="32" rx="6"/><text class="svg-label" x="36" y="271">ContactPoint</text>
+      <rect class="box" x="24" y="306" width="176" height="32" rx="6"/><text class="svg-label" x="36" y="327">Range</text>
+      <rect class="box" x="24" y="346" width="176" height="32" rx="6"/><text class="svg-label" x="36" y="367">Ratio</text>
+      <rect class="box" x="24" y="386" width="176" height="32" rx="6"/><text class="svg-label" x="36" y="407">SampledData</text>
+
+      <rect class="box-elem" x="352" y="74" width="150" height="34" rx="6"/>
+      <text class="svg-label" x="427" y="96" text-anchor="middle">Coding</text>
+      <rect class="box-elem" x="352" y="210" width="150" height="34" rx="6"/>
+      <text class="svg-label" x="427" y="232" text-anchor="middle">Period</text>
+      <rect class="box-elem" x="352" y="346" width="150" height="34" rx="6"/>
+      <text class="svg-label" x="427" y="368" text-anchor="middle">Quantity</text>
+      <text class="svg-sub" x="427" y="392" text-anchor="middle">= Age = Count = Distance = Duration</text>
+
+      <path class="wire" d="M200 50 H276 V88 H348" marker-end="url(#c)"/>
+      <path class="wire" d="M200 90 H348" marker-end="url(#c)"/>
+      <path class="wire" d="M200 130 H276 V94 H348" marker-end="url(#c)"/>
+      <path class="wire" d="M200 186 H276 V224 H348" marker-end="url(#c)"/>
+      <path class="wire" d="M200 226 H348" marker-end="url(#c)"/>
+      <path class="wire" d="M200 266 H276 V230 H348" marker-end="url(#c)"/>
+      <path class="wire" d="M200 322 H276 V360 H348" marker-end="url(#c)"/>
+      <path class="wire" d="M200 362 H348" marker-end="url(#c)"/>
+      <path class="wire" d="M200 402 H276 V366 H348" marker-end="url(#c)"/>
+
+      <rect class="box-elem" x="640" y="140" width="220" height="52" rx="7" fill-opacity="1"/>
+      <text class="svg-label" x="750" y="163" text-anchor="middle">final class Identifier</text>
+      <text class="svg-sub" x="750" y="179" text-anchor="middle">assigner: Reference?</text>
+      <rect class="box-elem" x="640" y="240" width="220" height="52" rx="7" fill-opacity="1"/>
+      <text class="svg-label" x="750" y="263" text-anchor="middle">final class Reference</text>
+      <text class="svg-sub" x="750" y="279" text-anchor="middle">identifier: Identifier?</text>
+
+      <path class="wire-hot" d="M690 192 V240" marker-end="url(#ch)"/>
+      <path class="wire-hot" d="M810 240 V192" marker-end="url(#ch)"/>
+      <text class="svg-edge" x="750" y="220" text-anchor="middle" fill="var(--elem)">cycle</text>
+
+      <path class="wire" d="M640 152 H570 V226 H506" marker-end="url(#c)"/>
+      <text class="svg-edge" x="566" y="144" text-anchor="end">Identifier has a period · type</text>
+      <text class="svg-sub" x="750" y="320" text-anchor="middle">held by 158 and 290 types</text>
+    </svg>
+    </div>
+    <figcaption>All arrows read "has a property of type". <b>Three fan-ins and one cycle</b> is the
+    whole structural story: <code>Coding</code>, <code>Period</code> and <code>Quantity</code>
+    absorb most composition, and <code>Identifier ⇄ Reference</code> is the one loop —
+    unrepresentable with structs, hence <code>final class</code> and immutable <code>let</code>
+    properties via <code>ElementReadOnly</code>. <code>Age</code>, <code>Count</code>,
+    <code>Distance</code> and <code>Duration</code> are not types at all here: they are
+    <code>typealias … = Quantity</code>.</figcaption>
+  </figure>
+
+  <div class="tight">
+    <h3>How often each datatype is reached</h3>
+    <p class="note">Number of declared types that hold a property (or choice case) of that type,
+    out of 679. <code>Extension</code> is on almost everything because every
+    <code>Element</code> carries an extension array — it is plumbing, not modelling.</p>
+    <figure>
+      <div class="bars" id="bars"></div>
+      <figcaption>Sorted by reach; bars share one scale. The top three are what any mapping layer
+      spends its time constructing.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ---- relation 3 ---- -->
+<section>
+  <div class="head">
+    <div class="eyebrow">Relation 3 — the type-erased pointer</div>
+    <h2><code>Reference</code> does not say what it points to</h2>
+  </div>
+  <p class="note">658 properties across the module are references, and not one of them is
+  parameterised by target. The Swift type is the same six fields whether it points at a
+  <code>Practitioner</code> or at nothing that exists. The permitted targets live in the FHIR
+  spec and, partially, in the generated doc comment above each property — never in the type
+  system.</p>
+
+  <figure>
+    <div class="figscroll">
+    <svg viewBox="0 0 900 268" role="img" aria-label="Reference has six fields: display, extension, id, identifier, reference, and type. The reference field is a string and the type field is a URI string, so the target resource type is not checked by the compiler.">
+      <defs>
+        <marker id="d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--line-2)"/>
+        </marker>
+      </defs>
+      <rect class="box-elem" x="24" y="26" width="330" height="216" rx="8"/>
+      <text class="svg-label" x="40" y="50">final class Reference</text>
+      <text class="svg-sub" x="40" y="66">ElementReadOnly · 6 stored properties</text>
+      <line x1="24" y1="80" x2="354" y2="80" stroke="var(--line-2)"/>
+      <text class="svg-label" x="40" y="102">reference</text><text class="svg-sub" x="338" y="102" text-anchor="end">FHIRPrimitive&lt;FHIRString&gt;?</text>
+      <text class="svg-label" x="40" y="128">type</text><text class="svg-sub" x="338" y="128" text-anchor="end">FHIRPrimitive&lt;FHIRURI&gt;?</text>
+      <text class="svg-label" x="40" y="154">identifier</text><text class="svg-sub" x="338" y="154" text-anchor="end">Identifier?</text>
+      <text class="svg-label" x="40" y="180">display</text><text class="svg-sub" x="338" y="180" text-anchor="end">FHIRPrimitive&lt;FHIRString&gt;?</text>
+      <text class="svg-label" x="40" y="206">id · extension</text><text class="svg-sub" x="338" y="206" text-anchor="end">inherited plumbing</text>
+
+      <path class="wire" d="M354 102 H420" marker-end="url(#d)"/>
+      <rect class="box" x="420" y="82" width="456" height="40" rx="7"/>
+      <text class="svg-sub" x="436" y="107">a string the compiler never parses — <tspan class="svg-label">"Practitioner/17"</tspan></text>
+
+      <path class="wire" d="M354 128 H388 V160 H416" marker-end="url(#d)"/>
+      <rect class="box" x="420" y="140" width="456" height="40" rx="7"/>
+      <text class="svg-sub" x="436" y="165">an optional URI hint, also a string — <tspan class="svg-label">"Practitioner"</tspan></text>
+
+      <rect class="box-term" x="420" y="198" width="456" height="44" rx="7"/>
+      <text class="svg-label" x="436" y="219">the only in-code hint: the doc comment</text>
+      <text class="svg-sub" x="436" y="234">/// Patient's nominated primary care provider</text>
+    </svg>
+    </div>
+    <figcaption><b>Nothing here is checked.</b> Both lines below compile, and both round-trip
+    through JSON without complaint — target correctness is entirely your mapping layer's job.</figcaption>
+  </figure>
+
+  <pre class="sample"><span class="c">// both compile; only one is meaningful</span>
+patient.managingOrganization = Reference(reference: <span class="ok">"Organization/42"</span>.asFHIRStringPrimitive())
+patient.managingOrganization = Reference(reference: <span class="bad">"Banana/42"</span>.asFHIRStringPrimitive())</pre>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Reference vs. contained vs. proxy</h3>
+      <p>Three different ways one resource holds another. A <code>Reference</code> is a string
+      pointer. <code>DomainResource.contained</code> and <code>Bundle.entry.resource</code> hold
+      the real thing, wrapped in <code>ResourceProxy</code> — a 147-case enum with one case per
+      resource type plus <code>unrecognized</code>, and the only place a resource literally
+      nests inside another.</p>
+    </div>
+    <div class="card">
+      <h3>Where the targets actually are</h3>
+      <p>The doc comment names a target often enough to be tempting and not often enough to
+      trust — of 658 reference properties, most read like <code>"Who and/or what this is
+      about"</code>. Treat the spec, or your own mapper, as the source of truth.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ---- choice types ---- -->
+<section>
+  <div class="head">
+    <div class="eyebrow">The fourth thing, if you count it</div>
+    <h2>186 nested enums stand in for <code>value[x]</code></h2>
+  </div>
+  <p class="note">Where FHIR allows one field to hold any of several datatypes, the generator
+  emits a nested enum — <code>Observation.ValueX</code>, <code>Patient.DeceasedX</code>. Nine of
+  them are 50 cases wide, and in those, the 31 complex payloads are marked
+  <code>indirect</code> to keep the enum's inline size small.</p>
+
+  <pre class="sample">public enum ValueX: Equatable, Hashable, Sendable {   <span class="c">// Extension.value[x] — 50 cases</span>
+    <span class="k">indirect case</span> address(Address)              <span class="c">// boxed: complex payload</span>
+    <span class="k">indirect case</span> age(Age)                      <span class="c">// = Quantity</span>
+    <span class="k">case</span> base64Binary(FHIRPrimitive&lt;Base64Binary&gt;)  <span class="c">// inline: primitive</span>
+    …
+    <span class="k">indirect case</span> usageContext(UsageContext)
+}</pre>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Choice slot</th><th>Enum</th><th class="n">Cases</th><th class="n">indirect</th></tr></thead>
+      <tbody id="choicerows"></tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <div><b>How this was built.</b> <code>scripts/parse_models.py</code> reads every
+  <code>.swift</code> file in the module: declarations and their conformances, public stored
+  properties and their types, nested <code>…X</code> enums and their cases, and the
+  <code>///</code> doc comment above each property. "Types reached" means distinct declared types
+  holding a property or choice case of that type.</div>
+  <div><b>What it cannot show.</b> Reference targets, cardinality beyond
+  optional-vs-array, and value-set bindings that FHIR marks <em>example</em> or
+  <em>preferred</em> rather than <em>required</em> — none of those survive into Swift, so no
+  parse of this module can recover them.</div>
+</footer>
+</div>
+
+<!-- ===================== EXPLORER ===================== -->
+<div class="wrap wide" id="p-explorer" role="tabpanel" aria-labelledby="t-explorer" hidden>
+  <section style="padding-top:40px">
+    <div class="head" style="border-top:0; padding-top:0">
+      <div class="eyebrow">Every resource, the same four questions — plus the source</div>
+      <h2>Resource explorer</h2>
+    </div>
+    <p class="note">What does it nest, what does it point at, which datatypes does it hold, which
+    terminology does it bind? Pick a resource — or type a datatype name like <code>Quantity</code>
+    to see which resources hold it. The <b>Swift source</b> tab shows the generated file
+    verbatim, read-only.</p>
+  </section>
+
+  <div class="explorer">
+    <div class="controls">
+      <input type="search" id="q" placeholder="Filter by name, summary, or a datatype it holds…" aria-label="Filter resources">
+      <select id="sort" aria-label="Sort resources">
+        <option value="name">A → Z</option>
+        <option value="lines">Most lines</option>
+        <option value="refs">Most references</option>
+        <option value="bb">Most nested structs</option>
+        <option value="dt">Most datatypes</option>
+      </select>
+      <span class="hits" id="hits"></span>
+    </div>
+    <div class="panes">
+      <div class="list" id="list" role="listbox" aria-label="Resources"></div>
+      <div class="pane">
+        <div class="dhead" id="dhead"></div>
+        <div class="subtabs" role="tablist" aria-label="Resource detail">
+          <button class="subtab" role="tab" id="s-structure" aria-selected="true">Structure</button>
+          <button class="subtab" role="tab" id="s-source" aria-selected="false">Swift source</button>
+        </div>
+        <div class="panebody" id="body-structure"></div>
+        <div class="panebody code" id="body-source" hidden></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tip" role="status" aria-live="polite"></div>
+
+<script id="payload" type="application/json">/*__DATA__*/</script>
+<script id="sources" type="application/json">/*__SOURCES__*/</script>
+<script>
+const DATA = JSON.parse(document.getElementById('payload').textContent);
+let SOURCES = null;                       // parsed on first use — it is a few MB
+const RELEASES = /*__RELEASES__*/;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+/* ---------------- provenance & masthead ---------------- */
+const M = DATA.meta, C = DATA.counts;
+$('brandsub').textContent = `${M.module} · FHIR ${M.fhir_version}`;
+$('hero-eyebrow').textContent =
+  `Apple FHIRModels · Sources/${M.module} · FHIR ${M.fhir_version}`;
+$('prov-module').textContent = `Sources/${M.module}`;
+$('prov-fhir').textContent = M.fhir_version;
+$('prov-commit').textContent = M.models_commit || 'unknown';
+$('prov-files').textContent =
+  `${C.files_total} files · ${C.lines_total.toLocaleString()} lines`;
+
+/* ---------------- release picker ---------------- */
+const verSel = $('ver');
+verSel.innerHTML = RELEASES.map(r =>
+  `<option value="${r.id}"${r.id === M.module ? ' selected' : ''}>${r.label}${r.available ? '' : ' — soon'}</option>`).join('');
+
+function applyRelease(id){
+  const r = RELEASES.find(x => x.id === id);
+  const ok = !!(r && r.available);
+  $('p-soon').hidden = ok;
+  ['t-overview','t-explorer'].forEach(t => { $(t).disabled = !ok; });
+  if (ok) { showTab(activeTab); }
+  else {
+    $('p-overview').hidden = true; $('p-explorer').hidden = true;
+    $('soon-title').textContent = `${r.label} is not built yet`;
+    $('soon-body').textContent =
+      `FHIRExplorer ships with one release parsed: ${M.fhir_version} from Sources/${M.module}. ` +
+      `${r.label} exists upstream as Sources/${r.id}, but it has not been parsed into this page.`;
+    $('soon-cmd').textContent =
+      `python3 scripts/parse_models.py --models-dir ../FHIRModels/Sources/${r.id} ` +
+      `--out data/${r.id.replace('Models','').toLowerCase()}.json ` +
+      `--sources-out data/${r.id.replace('Models','').toLowerCase()}.sources.json`;
+  }
+}
+verSel.addEventListener('change', () => applyRelease(verSel.value));
+
+/* ---------------- top-level tabs ---------------- */
+let activeTab = 'overview';
+function showTab(name){
+  activeTab = name;
+  for (const n of ['overview','explorer']) {
+    $('p-' + n).hidden = n !== name;
+    $('t-' + n).setAttribute('aria-selected', String(n === name));
+  }
+  if (name === 'explorer' && !listRendered) { renderList(); renderDetail(); }
+}
+$('t-overview').addEventListener('click', () => showTab('overview'));
+$('t-explorer').addEventListener('click', () => showTab('explorer'));
+
+/* ---------------- tooltip ---------------- */
+const tip = $('tip');
+function showTip(e, html){
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY - r.height - 8;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y < 8) y = e.clientY + 18;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+const hideTip = () => { tip.style.opacity = 0; };
+
+/* ---------------- overview: bars + choice table ---------------- */
+const topDT = DATA.datatypes.filter(d => d.used > 0).slice(0, 18);
+const maxDT = topDT[0].used;
+$('bars').innerHTML = topDT.map(d => `
+  <div class="bar" data-n="${d.name}" data-u="${d.used}" data-b="${d.base}" data-k="${d.kind}">
+    <span class="nm">${d.name}</span>
+    <span class="track"><span class="fill" style="width:${(d.used / maxDT * 100).toFixed(1)}%"></span></span>
+    <span class="val">${d.used.toLocaleString()}</span>
+  </div>`).join('');
+$('bars').addEventListener('mousemove', e => {
+  const row = e.target.closest('.bar'); if (!row) return hideTip();
+  const pct = (row.dataset.u / C.types_declared * 100).toFixed(0);
+  showTip(e, `<b>${row.dataset.n}</b> — ${row.dataset.k} : ${row.dataset.b}<br>` +
+             `held by ${(+row.dataset.u).toLocaleString()} of ${C.types_declared} types (${pct}%)`);
+});
+$('bars').addEventListener('mouseleave', hideTip);
+
+$('choicerows').innerHTML = DATA.choices_top.slice(0, 10).map(c => `
+  <tr><td class="m">${c.owner}</td><td class="m">${c.enum}</td>
+      <td class="n">${c.n}</td><td class="n">${c.indirect}</td></tr>`).join('');
+
+/* ---------------- explorer ---------------- */
+const R = DATA.resources;
+let current = R.some(r => r.name === 'Patient') ? 'Patient' : R[0].name;
+let listRendered = false, detailTab = 'structure';
+
+const metric = r => ({ name: r.name, lines: r.lines, refs: r.refs.length,
+                       bb: r.bb.length, dt: r.dt.length })[$('sort').value];
+
+function filtered(){
+  const q = $('q').value.trim().toLowerCase();
+  const out = R.filter(r => !q || r.name.toLowerCase().includes(q) ||
+    (r.doc || '').toLowerCase().includes(q) ||
+    r.dt.some(d => d.toLowerCase().includes(q)) ||
+    r.bb.some(b => b.n.toLowerCase().includes(q)));
+  const k = $('sort').value;
+  out.sort(k === 'name' ? (a, b) => a.name.localeCompare(b.name)
+                        : (a, b) => metric(b) - metric(a) || a.name.localeCompare(b.name));
+  return out;
+}
+
+function renderList(){
+  const rows = filtered();
+  listRendered = true;
+  $('hits').textContent = `${rows.length} of ${R.length}`;
+  const unit = { name:'', lines:'ln', refs:'ref', bb:'nested', dt:'types' }[$('sort').value];
+  $('list').innerHTML = rows.map(r => `
+    <button class="row" role="option" data-name="${r.name}" aria-current="${r.name === current}">
+      <span class="rn">${r.name}</span>
+      <span class="rm">${$('sort').value === 'name' ? r.lines + ' ln' : metric(r) + ' ' + unit}</span>
+    </button>`).join('') || '<p class="empty" style="padding:10px">No resource matches.</p>';
+  if (rows.length && !rows.some(r => r.name === current)) select(rows[0].name);
+}
+
+function renderDetail(){
+  const r = R.find(x => x.name === current); if (!r) return;
+  const codeMap = new Map();
+  r.codes.forEach(c => codeMap.set(c.e, (codeMap.get(c.e) || 0) + 1));
+
+  $('dhead').innerHTML = `
+    <h3>${r.name}</h3>
+    <p>${esc(r.doc || '')}</p>
+    <div class="chips">
+      <span class="pill ${r.kind === 'DomainResource' ? 'res' : ''}">${r.kind}</span>
+      <span class="pill">${r.file} · ${r.lines.toLocaleString()} lines</span>
+    </div>`;
+
+  $('body-structure').innerHTML = `
+    <div class="metrics">
+      <div><b>${r.props}</b><span>own properties</span></div>
+      <div><b>${r.bb.length}</b><span>nested structs</span></div>
+      <div><b>${r.refs.length}</b><span>references</span></div>
+      <div><b>${r.dt.length}</b><span>datatypes</span></div>
+      <div><b>${codeMap.size}</b><span>code enums</span></div>
+      <div><b>${r.ch.length}</b><span>choice slots</span></div>
+    </div>
+
+    <div class="block">
+      <h4>Nests — private backbone structs</h4>
+      ${r.bb.length ? `<div class="chips">${r.bb.map(b =>
+        `<span class="chip b">${b.n} <span style="color:var(--muted)">${b.p}</span></span>`).join('')}</div>`
+        : '<p class="empty">Flat — no nested structs.</p>'}
+    </div>
+
+    <div class="block">
+      <h4>Points at — Reference properties</h4>
+      ${r.refs.length ? `<div class="reflist">${r.refs.map(f => `
+        <div>
+          ${f.o ? `<span class="own">${f.o}.</span>` : ''}
+          <span class="p">${f.n}${f.a ? '[]' : ''}</span>
+          <span class="arr">→ Reference</span>
+          <span class="doc">${esc(f.d)}</span>
+        </div>`).join('')}</div>`
+        : '<p class="empty">Holds no references.</p>'}
+    </div>
+
+    <div class="block">
+      <h4>Holds — shared datatypes</h4>
+      <div class="chips">${r.dt.map(d => `<span class="chip">${d}</span>`).join('')}</div>
+    </div>
+
+    <div class="block">
+      <h4>Binds — terminology enums</h4>
+      ${codeMap.size ? `<div class="chips">${[...codeMap].map(([e, n]) =>
+        `<span class="chip t">${e}${n > 1 ? ` <span style="color:var(--muted)">×${n}</span>` : ''}</span>`).join('')}</div>`
+        : '<p class="empty">No required code bindings.</p>'}
+    </div>
+
+    ${r.ch.length ? `<div class="block">
+      <h4>Chooses — value[x] enums</h4>
+      <div class="chips">${r.ch.map(c =>
+        `<span class="chip">${c.o ? c.o + '.' : ''}${c.e} <span style="color:var(--muted)">${c.n} cases</span></span>`).join('')}</div>
+    </div>` : ''}`;
+
+  if (detailTab === 'source') renderSource(r);
+  else $('body-source').innerHTML = '';
+}
+
+/* ---- Swift source viewer (read-only) ---- */
+const TOKENS = new RegExp([
+  '(/\\*[\\s\\S]*?\\*/)',                       // block comment
+  '(//[^\\n]*)',                                // line comment
+  '("(?:[^"\\\\\\n]|\\\\.)*")',                 // string literal
+  '\\b(public|private|internal|open|final|class|struct|enum|protocol|extension|var|let|' +
+  'func|init|throws|throw|try|return|case|switch|default|if|guard|else|for|while|in|do|' +
+  'catch|defer|nil|true|false|self|super|indirect|required|override|static|typealias|' +
+  'import|as|is|where|inout|mutating|some|any|associatedtype|subscript|get|set|willSet|' +
+  'didSet|lazy|weak|unowned|convenience)\\b',   // keywords
+  '\\b([A-Z][A-Za-z0-9_]*)\\b'                  // type names
+].join('|'), 'g');
+
+function highlight(src){
+  let out = '', last = 0, m;
+  TOKENS.lastIndex = 0;
+  while ((m = TOKENS.exec(src)) !== null) {
+    out += esc(src.slice(last, m.index));
+    const cls = (m[1] || m[2]) ? 'c' : m[3] ? 's' : m[4] ? 'k' : 't';
+    out += `<span class="${cls}">${esc(m[0])}</span>`;
+    last = m.index + m[0].length;
+  }
+  return out + esc(src.slice(last));
+}
+
+let showHeader = false;   // every generated file opens with the same Apache-2.0 block
+
+function firstCodeLine(lines){
+  let i = 0;
+  while (i < lines.length) {
+    const t = lines[i].trim();
+    if (t === '' || t.startsWith('//')) i++; else break;
+  }
+  return i;
+}
+
+function renderSource(r){
+  if (SOURCES === null) {
+    try { SOURCES = JSON.parse(document.getElementById('sources').textContent); }
+    catch (err) { SOURCES = {}; }
+  }
+  const src = SOURCES[r.name];
+  if (src === undefined) {
+    $('body-source').innerHTML =
+      `<div style="padding:24px"><p class="empty">Source for ${esc(r.name)} was not bundled into this build.</p></div>`;
+    return;
+  }
+  const lines = src.split('\n');
+  const skip = firstCodeLine(lines);
+  const collapse = !showHeader && skip > 5;
+  const from = collapse ? skip : 0;
+  const body = (collapse
+      ? `<button class="l fold" id="unfold"><span class="g">1</span><span>// … ${skip}-line license header — show</span></button>`
+      : '') +
+    lines.slice(from).map((ln, i) =>
+      `<div class="l"><span class="g">${from + i + 1}</span><span>${highlight(ln) || ' '}</span></div>`).join('');
+
+  $('body-source').innerHTML = `
+    <div class="srcbar">
+      <span>Sources/${M.module}/${r.file}</span>
+      <span>${lines.length.toLocaleString()} lines</span>
+      <span>read-only · © Apple Inc. · Apache-2.0</span>
+      <span class="sp"></span>
+      ${skip > 5 ? `<button class="btn" id="togglehdr">${showHeader ? 'Hide header' : 'Show header'}</button>` : ''}
+      <button class="btn" id="copysrc">Copy file</button>
+    </div>
+    <div class="src">${body}</div>`;
+
+  const toggle = () => { showHeader = !showHeader; renderSource(r); };
+  if ($('togglehdr')) $('togglehdr').addEventListener('click', toggle);
+  if ($('unfold')) $('unfold').addEventListener('click', toggle);
+  $('copysrc').addEventListener('click', async e => {
+    try { await navigator.clipboard.writeText(src); e.target.textContent = 'Copied'; }
+    catch { e.target.textContent = 'Copy blocked'; }
+    setTimeout(() => { e.target.textContent = 'Copy file'; }, 1600);
+  });
+}
+
+function showDetailTab(name){
+  detailTab = name;
+  $('s-structure').setAttribute('aria-selected', String(name === 'structure'));
+  $('s-source').setAttribute('aria-selected', String(name === 'source'));
+  $('body-structure').hidden = name !== 'structure';
+  $('body-source').hidden = name !== 'source';
+  if (name === 'source') renderSource(R.find(x => x.name === current));
+}
+$('s-structure').addEventListener('click', () => showDetailTab('structure'));
+$('s-source').addEventListener('click', () => showDetailTab('source'));
+
+function select(name){
+  current = name;
+  $('list').querySelectorAll('.row').forEach(b =>
+    b.setAttribute('aria-current', String(b.dataset.name === name)));
+  renderDetail();
+  if (detailTab === 'source') $('body-source').scrollTop = 0;
+}
+$('list').addEventListener('click', e => {
+  const b = e.target.closest('.row'); if (b) select(b.dataset.name);
+});
+$('q').addEventListener('input', renderList);
+$('sort').addEventListener('change', renderList);
+
+applyRelease(verSel.value);
+showTab('overview');
+</script>

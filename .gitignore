@@ -1,0 +1,9 @@
+# Build output — regenerate with `python3 scripts/build.py`
+dist/
+
+# Verbatim Swift bundles: large, and reproducible from the FHIRModels checkout
+data/*.sources.json
+
+__pycache__/
+*.pyc
+.DS_Store
