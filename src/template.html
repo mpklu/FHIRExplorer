@@ -939,7 +939,8 @@ function applyRelease(slug){
     `FHIRExplorer has ${EMBEDDED.map(e => e.label).join(' and ')} parsed into this page. ` +
     `${r.label} exists upstream as Sources/${r.id}, but has not been built.`;
   $('soon-cmd').textContent =
-    `python3 scripts/parse_models.py --models-dir ../FHIRModels/Sources/${r.id} ` +
+    `python3 scripts/parse_models.py ` +
+    `--models-dir "\${FHIR_MODELS_REPO:-../FHIRModels}/Sources/${r.id}" ` +
     `--out data/${r.slug}.json --sources-out data/${r.slug}.sources.json`;
 }
 verSel.addEventListener('change', () => applyRelease(verSel.value));

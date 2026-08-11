@@ -78,14 +78,20 @@ needs the network to produce — with it in the repo, every build is offline.
 
 ## Build
 
-Defaults assume FHIRModels is a sibling checkout (`../FHIRModels`).
+FHIRModels is read-only input that lives wherever you keep it. The build looks for it in this
+order: `--fhir-repo`, then `$FHIR_MODELS_REPO`, then a sibling `../FHIRModels` checkout.
 
 ```bash
+export FHIR_MODELS_REPO=~/Projects/mp/fhir/FHIRModels   # once, e.g. in ~/.zshrc
+
 python3 scripts/build.py                          # embed every available release
 python3 scripts/build.py --releases r4            # just one, for a smaller page
 python3 scripts/build.py --reparse                # re-parse the models first
-python3 scripts/build.py --fhir-repo /path/to/FHIRModels
+python3 scripts/build.py --fhir-repo /path/to/FHIRModels   # overrides the env var
 ```
+
+Only `--reparse` (or a first build, where the Swift bundles are absent) needs the checkout at
+all — `data/*.json` and `data/*.examples.json` are committed, so a plain build works without it.
 
 Each embedded release adds roughly 5–6 MB to the page (its Swift sources dominate), so use
 `--releases` if you need a lighter build — for example to stay under a host's file-size limit.
@@ -131,8 +137,8 @@ The parser is release-agnostic — it reads whichever `Sources/Models*` director
 
 ```bash
 python3 scripts/parse_models.py \
-    --models-dir ../FHIRModels/Sources/ModelsR5 \
-    --out data/r5.json --sources-out data/r5.sources.json
+    --models-dir "${FHIR_MODELS_REPO:-../FHIRModels}/Sources/ModelsR4B" \
+    --out data/r4b.json --sources-out data/r4b.sources.json
 ```
 
 Fetch its examples the same way (`--release r5`), flip `available` to `True` for that entry in

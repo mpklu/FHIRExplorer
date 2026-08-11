@@ -12,9 +12,12 @@ first, so a clean checkout builds with one command. The examples cache is option
 and never fetched here — run scripts/fetch_examples.py once if it is missing.
 
 Usage
-    python3 scripts/build.py                       # build R4 from ../FHIRModels
+    python3 scripts/build.py                       # every available release
     python3 scripts/build.py --reparse             # re-parse the models first
     python3 scripts/build.py --fhir-repo /path/to/FHIRModels
+
+The FHIRModels checkout is located in this order: --fhir-repo, then
+$FHIR_MODELS_REPO, then ../FHIRModels.
 """
 
 from __future__ import annotations
@@ -29,6 +32,10 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 
 import parse_models  # noqa: E402  (local module)
+
+# FHIRModels is read-only input that lives wherever the user keeps it, so the
+# path comes from the environment first and only falls back to a sibling checkout.
+DEFAULT_FHIR_REPO = os.environ.get("FHIR_MODELS_REPO") or os.path.join(ROOT, "..", "FHIRModels")
 
 # Every release Apple ships a module for. `available` releases are parsed into
 # the page; the rest render the "coming soon" panel. To add one: parse its module
@@ -51,8 +58,9 @@ def embed(obj) -> str:
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--fhir-repo", default=os.path.join(ROOT, "..", "FHIRModels"),
-                    help="path to the FHIRModels checkout (default: ../FHIRModels)")
+    ap.add_argument("--fhir-repo", default=DEFAULT_FHIR_REPO,
+                    help="path to the FHIRModels checkout "
+                         "(default: $FHIR_MODELS_REPO, else ../FHIRModels)")
     ap.add_argument("--releases", default="",
                     help="comma-separated slugs to embed (default: every available release)")
     ap.add_argument("--reparse", action="store_true", help="re-parse the models before building")
@@ -85,7 +93,10 @@ def main(argv=None):
 
         if args.reparse or not os.path.exists(data_path) or not os.path.exists(src_path):
             if not os.path.isdir(models_dir):
-                sys.exit(f"cannot parse: {models_dir} not found (pass --fhir-repo)")
+                sys.exit(f"cannot parse: {models_dir} not found.\n"
+                         f"Point at your FHIRModels checkout with either:\n"
+                         f"  export FHIR_MODELS_REPO=/path/to/FHIRModels\n"
+                         f"  python3 scripts/build.py --fhir-repo /path/to/FHIRModels")
             print(f"parsing {models_dir} …")
             parse_models.main(["--models-dir", models_dir,
                                "--out", data_path, "--sources-out", src_path])
